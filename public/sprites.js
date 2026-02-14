@@ -16,6 +16,7 @@ const CharacterStates = {
 };
 
 // Character definitions with positions matching the office layout
+// Desk coordinates defined as fractions of office dimensions (0-1 range)
 const CHARACTERS = [
   {
     id: 'nova',
@@ -25,6 +26,9 @@ const CHARACTERS = [
     // Positioned in Nova's corner office (right top)
     offsetX: 0.15,
     offsetY: 0.12,
+    // Specific desk coordinates for Nova's corner office
+    deskX: 0.15,
+    deskY: 0.12,
     // State machine properties
     state: CharacterStates.IDLE,
     frame: 0,
@@ -37,9 +41,12 @@ const CHARACTERS = [
     name: 'Zero-1',
     color: '#6bff6b',
     position: 'pod_1',
-    // Positioned in Zero Pod 1
+    // Positioned in Zero Pod 1 (middle-right area)
     offsetX: 0.12,
     offsetY: 0.40,
+    // Specific desk coordinates for Zero Pod 1
+    deskX: 0.12,
+    deskY: 0.40,
     // State machine properties
     state: CharacterStates.IDLE,
     frame: 0,
@@ -52,9 +59,12 @@ const CHARACTERS = [
     name: 'Zero-2',
     color: '#6bffff',
     position: 'pod_2',
-    // Positioned in Zero Pod 2
+    // Positioned in Zero Pod 2 (middle-right area)
     offsetX: 0.44,
     offsetY: 0.40,
+    // Specific desk coordinates for Zero Pod 2
+    deskX: 0.44,
+    deskY: 0.40,
     // State machine properties
     state: CharacterStates.IDLE,
     frame: 0,
@@ -67,9 +77,12 @@ const CHARACTERS = [
     name: 'Zero-3',
     color: '#6b6bff',
     position: 'pod_3',
-    // Positioned in Zero Pod 3
+    // Positioned in Zero Pod 3 (middle-right area)
     offsetX: 0.76,
     offsetY: 0.40,
+    // Specific desk coordinates for Zero Pod 3
+    deskX: 0.76,
+    deskY: 0.40,
     // State machine properties
     state: CharacterStates.IDLE,
     frame: 0,
@@ -85,6 +98,9 @@ const CHARACTERS = [
     // Positioned at Delta's review station (right top)
     offsetX: 0.72,
     offsetY: 0.12,
+    // Specific desk coordinates for Delta station
+    deskX: 0.72,
+    deskY: 0.12,
     // State machine properties
     state: CharacterStates.IDLE,
     frame: 0,
@@ -100,6 +116,9 @@ const CHARACTERS = [
     // Positioned at reception desk (right bottom left)
     offsetX: 0.22,
     offsetY: 0.62,
+    // Specific desk coordinates for Bestie reception
+    deskX: 0.22,
+    deskY: 0.62,
     // State machine properties
     state: CharacterStates.IDLE,
     frame: 0,
@@ -115,6 +134,9 @@ const CHARACTERS = [
     // Positioned at Dexter's flex desk (right bottom right)
     offsetX: 0.78,
     offsetY: 0.62,
+    // Specific desk coordinates for Dexter flex desk
+    deskX: 0.78,
+    deskY: 0.62,
     // State machine properties
     state: CharacterStates.IDLE,
     frame: 0,
@@ -153,34 +175,39 @@ function setCharacterState(characterId, newState) {
   character.state = newState;
   character.frame = 0;
   
+  // Define lounge area (kitchen/lounge area - left side of office)
+  const loungePositions = [
+    { x: 0.08, y: 0.55 },  // Near couch
+    { x: 0.15, y: 0.65 },  // Lounge center
+    { x: 0.08, y: 0.75 },  // Near plant
+    { x: 0.18, y: 0.80 },  // Coffee table area
+    { x: 0.12, y: 0.50 }   // Near kitchen
+  ];
+  
   // Set target positions based on new state
   switch (newState) {
     case CharacterStates.IDLE:
-      // Return to lounge/kitchen area (random position in lower half)
-      character.targetX = 0.1 + Math.random() * 0.3;
-      character.targetY = 0.5 + Math.random() * 0.3;
+      // Return to lounge/kitchen area (random position in left side)
+      const loungePos = loungePositions[Math.floor(Math.random() * loungePositions.length)];
+      character.targetX = loungePos.x;
+      character.targetY = loungePos.y;
       break;
     case CharacterStates.WALKING_TO_DESK:
-      // Move to their desk position
-      character.targetX = character.originalOffsetX || character.offsetX;
-      character.targetY = character.originalOffsetY || character.offsetY;
+      // Move to their specific desk position using deskX/deskY
+      character.targetX = character.deskX;
+      character.targetY = character.deskY;
       break;
     case CharacterStates.WORKING:
       // Stay at desk
-      character.targetX = character.originalOffsetX || character.offsetX;
-      character.targetY = character.originalOffsetY || character.offsetY;
+      character.targetX = character.deskX;
+      character.targetY = character.deskY;
       break;
     case CharacterStates.WALKING_TO_LOUNGE:
       // Move back to lounge
-      character.targetX = 0.1 + Math.random() * 0.3;
-      character.targetY = 0.5 + Math.random() * 0.3;
+      const loungeReturnPos = loungePositions[Math.floor(Math.random() * loungePositions.length)];
+      character.targetX = loungeReturnPos.x;
+      character.targetY = loungeReturnPos.y;
       break;
-  }
-  
-  // Store original desk position if not already stored
-  if (!character.originalOffsetX) {
-    character.originalOffsetX = character.offsetX;
-    character.originalOffsetY = character.offsetY;
   }
 }
 

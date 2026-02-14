@@ -135,6 +135,22 @@ function draw() {
   const novaH = rightH * 0.25;
   ctx.fillStyle = COLORS.novaOffice;
   ctx.fillRect(novaX, novaY, novaW, novaH);
+  
+  // Nova's desk details - monitor
+  ctx.fillStyle = '#3a3a5a';
+  ctx.fillRect(novaX + novaW * 0.15, novaY + novaH * 0.5, novaW * 0.25, novaH * 0.15);
+  ctx.fillStyle = '#6a8aff';
+  ctx.fillRect(novaX + novaW * 0.17, novaY + novaH * 0.52, novaW * 0.21, novaH * 0.11);
+  // Nova's desk chair
+  ctx.fillStyle = '#8a5a7a';
+  ctx.fillRect(novaX + novaW * 0.6, novaY + novaH * 0.55, novaW * 0.2, novaH * 0.25);
+  // Nova name plate
+  ctx.fillStyle = '#ccaacc';
+  ctx.fillRect(novaX + novaW * 0.7, novaY + novaH * 0.85, novaW * 0.2, novaH * 0.08);
+  ctx.fillStyle = '#000';
+  ctx.font = `${8 * scale}px Arial`;
+  ctx.fillText('NOVA', novaX + novaW * 0.8, novaY + novaH * 0.9);
+  
   ctx.fillStyle = '#fff';
   ctx.font = `${10 * scale}px Arial`;
   ctx.fillText('NOVA', novaX + novaW / 2, novaY + novaH / 2);
@@ -147,6 +163,24 @@ function draw() {
   const deltaH = rightH * 0.25;
   ctx.fillStyle = COLORS.deltaStation;
   ctx.fillRect(deltaX, deltaY, deltaW, deltaH);
+  
+  // Delta's desk details - dual monitors
+  ctx.fillStyle = '#3a3a5a';
+  ctx.fillRect(deltaX + deltaW * 0.1, deltaY + deltaH * 0.45, deltaW * 0.2, deltaH * 0.12);
+  ctx.fillRect(deltaX + deltaW * 0.35, deltaY + deltaH * 0.45, deltaW * 0.2, deltaH * 0.12);
+  ctx.fillStyle = '#8aff8a';
+  ctx.fillRect(deltaX + deltaW * 0.12, deltaY + deltaH * 0.47, deltaW * 0.16, deltaH * 0.08);
+  ctx.fillRect(deltaX + deltaW * 0.37, deltaY + deltaH * 0.47, deltaW * 0.16, deltaH * 0.08);
+  // Delta's review chair
+  ctx.fillStyle = '#7a7a5a';
+  ctx.fillRect(deltaX + deltaW * 0.65, deltaY + deltaH * 0.5, deltaW * 0.2, deltaH * 0.3);
+  // Delta name plate
+  ctx.fillStyle = '#cccc88';
+  ctx.fillRect(deltaX + deltaW * 0.7, deltaY + deltaH * 0.85, deltaW * 0.2, deltaH * 0.08);
+  ctx.fillStyle = '#000';
+  ctx.font = `${8 * scale}px Arial`;
+  ctx.fillText('DELTA', deltaX + deltaW * 0.8, deltaY + deltaH * 0.9);
+  
   ctx.fillStyle = '#fff';
   ctx.fillText('DELTA', deltaX + deltaW / 2, deltaY + deltaH / 2);
   ctx.fillText('STATION', deltaX + deltaW / 2, deltaY + deltaH / 2 + 14 * scale);
@@ -156,11 +190,30 @@ function draw() {
   const podH = rightH * 0.18;
   const podW = rightW * 0.28;
   
+  const podNames = ['ZERO-1', 'ZERO-2', 'ZERO-3'];
   for (let i = 0; i < 3; i++) {
     const podX = rightX + rightW * (0.05 + i * 0.32);
+    const currentPodName = podNames[i];
     ctx.fillStyle = COLORS.zeroPod;
     ctx.fillRect(podX, podY, podW, podH);
+    
+    // Zero pod desk details - monitor
+    ctx.fillStyle = '#3a3a5a';
+    ctx.fillRect(podX + podW * 0.15, podY + podH * 0.4, podW * 0.25, podH * 0.2);
+    ctx.fillStyle = '#8a8aff';
+    ctx.fillRect(podX + podW * 0.17, podY + podH * 0.42, podW * 0.21, podH * 0.16);
+    // Zero pod chair
+    ctx.fillStyle = '#5a6a7a';
+    ctx.fillRect(podX + podW * 0.6, podY + podH * 0.45, podW * 0.25, podH * 0.35);
+    // Zero name plate
+    ctx.fillStyle = '#aaaacc';
+    ctx.fillRect(podX + podW * 0.7, podY + podH * 0.8, podW * 0.2, podH * 0.1);
+    ctx.fillStyle = '#000';
+    ctx.font = `${7 * scale}px Arial`;
+    ctx.fillText(currentPodName, podX + podW * 0.8, podY + podH * 0.87);
+    
     ctx.fillStyle = '#fff';
+    ctx.font = `${10 * scale}px Arial`;
     ctx.fillText('ZERO', podX + podW / 2, podY + podH / 2);
     ctx.fillText('POD ' + (i + 1), podX + podW / 2, podY + podH / 2 + 12 * scale);
   }
@@ -172,7 +225,24 @@ function draw() {
   const bestieH = rightH * 0.2;
   ctx.fillStyle = COLORS.bestieReception;
   ctx.fillRect(bestieX, bestieY, bestieW, bestieH);
+  
+  // Bestie reception desk details - computer
+  ctx.fillStyle = '#3a3a5a';
+  ctx.fillRect(bestieX + bestieW * 0.15, bestieY + bestieH * 0.35, bestieW * 0.25, bestieH * 0.25);
+  ctx.fillStyle = '#8aff8a';
+  ctx.fillRect(bestieX + bestieW * 0.17, bestieY + bestieH * 0.38, bestieW * 0.21, bestieH * 0.19);
+  // Bestie chair
+  ctx.fillStyle = '#7a5a4a';
+  ctx.fillRect(bestieX + bestieW * 0.55, bestieY + bestieH * 0.4, bestieW * 0.3, bestieH * 0.4);
+  // Reception sign
+  ctx.fillStyle = '#ccaa88';
+  ctx.fillRect(bestieX + bestieW * 0.1, bestieY - bestieH * 0.15, bestieW * 0.35, bestieH * 0.12);
+  ctx.fillStyle = '#000';
+  ctx.font = `${7 * scale}px Arial`;
+  ctx.fillText('WELCOME', bestieX + bestieW * 0.27, bestieY - bestieH * 0.06);
+  
   ctx.fillStyle = '#fff';
+  ctx.font = `${10 * scale}px Arial`;
   ctx.fillText('BESTIE', bestieX + bestieW / 2, bestieY + bestieH / 2);
   ctx.fillText('RECEPTION', bestieX + bestieW / 2, bestieY + bestieH / 2 + 12 * scale);
   
@@ -183,7 +253,24 @@ function draw() {
   const dexterH = rightH * 0.2;
   ctx.fillStyle = COLORS.dexterDesk;
   ctx.fillRect(dexterX, dexterY, dexterW, dexterH);
+  
+  // Dexter flex desk details - laptop
+  ctx.fillStyle = '#3a3a5a';
+  ctx.fillRect(dexterX + dexterW * 0.15, dexterY + dexterH * 0.4, dexterW * 0.3, dexterH * 0.2);
+  ctx.fillStyle = '#8affff';
+  ctx.fillRect(dexterX + dexterW * 0.17, dexterY + dexterH * 0.42, dexterW * 0.26, dexterH * 0.16);
+  // Dexter chair (stool)
+  ctx.fillStyle = '#6a5a7a';
+  ctx.fillRect(dexterX + dexterW * 0.55, dexterY + dexterH * 0.5, dexterW * 0.15, dexterH * 0.3);
+  // Hot desk sign
+  ctx.fillStyle = '#aaccff';
+  ctx.fillRect(dexterX + dexterW * 0.7, dexterY + dexterH * 0.8, dexterW * 0.25, dexterH * 0.12);
+  ctx.fillStyle = '#000';
+  ctx.font = `${7 * scale}px Arial`;
+  ctx.fillText('HOT', dexterX + dexterW * 0.82, dexterY + dexterH * 0.88);
+  
   ctx.fillStyle = '#fff';
+  ctx.font = `${10 * scale}px Arial`;
   ctx.fillText('DEXTER', dexterX + dexterW / 2, dexterY + dexterH / 2);
   ctx.fillText('FLEX', dexterX + dexterW / 2, dexterY + dexterH / 2 + 12 * scale);
   
