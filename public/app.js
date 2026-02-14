@@ -224,5 +224,69 @@ function draw() {
   }
 }
 
-// Initial draw
-draw();
+// Animation loop for state machine
+let lastTime = 0;
+let stateCycleTimer = 0;
+const STATE_CYCLE_INTERVAL = 5000; // 5 seconds
+
+function gameLoop(timestamp) {
+  const deltaTime = timestamp - lastTime;
+  lastTime = timestamp;
+  
+  // Redraw the office
+  draw();
+  
+  // Update character animations with deltaTime
+  if (window.drawCharacters) {
+    window.drawCharacters(deltaTime);
+  }
+  
+  // Cycle character states every 5 seconds (demo mode)
+  stateCycleTimer += deltaTime;
+  if (stateCycleTimer >= STATE_CYCLE_INTERVAL) {
+    stateCycleTimer = 0;
+    cycleCharacterStates();
+  }
+  
+  requestAnimationFrame(gameLoop);
+}
+
+// Demo: Cycle characters through states
+function cycleCharacterStates() {
+  if (!window.CHARACTERS || !window.CharacterStates) return;
+  
+  const chars = window.CHARACTERS;
+  const states = window.CharacterStates;
+  
+  chars.forEach((char, index) => {
+    // Stagger state changes based on character index
+    setTimeout(() => {
+      const currentState = char.state;
+      let nextState;
+      
+      // State machine transitions
+      switch (currentState) {
+        case states.IDLE:
+          nextState = states.WALKING_TO_DESK;
+          break;
+        case states.WALKING_TO_DESK:
+          nextState = states.WORKING;
+          break;
+        case states.WORKING:
+          nextState = states.WALKING_TO_LOUNGE;
+          break;
+        case states.WALKING_TO_LOUNGE:
+        default:
+          nextState = states.IDLE;
+          break;
+      }
+      
+      if (window.setCharacterState) {
+        window.setCharacterState(char.id, nextState);
+      }
+    }, index * 300); // 300ms stagger between each character
+  });
+}
+
+// Start the animation loop
+requestAnimationFrame(gameLoop);
