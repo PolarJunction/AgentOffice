@@ -4,8 +4,12 @@ const ctx = canvas.getContext('2d');
 
 // Office dimensions and layout
 let scale = 1;
+window.scale = scale;
+
 const MIN_WIDTH = 1200;
 const MIN_HEIGHT = 800;
+window.MIN_WIDTH = MIN_WIDTH;
+window.MIN_HEIGHT = MIN_HEIGHT;
 
 // Color palette - cozy office colors
 const COLORS = {
@@ -35,6 +39,7 @@ function resizeCanvas() {
   // Calculate scale based on window size
   scale = Math.min(canvas.width / MIN_WIDTH, canvas.height / MIN_HEIGHT);
   scale = Math.max(scale, 0.5);
+  window.scale = scale;
   
   draw();
 }
@@ -212,6 +217,11 @@ function draw() {
   ctx.moveTo(x + w * 0.62, hallwayY + hallwayH / 2);
   ctx.lineTo(x + w * 0.57, hallwayY + hallwayH / 2);
   ctx.stroke();
+  
+  // Draw character sprites on top of the office layout
+  if (window.drawCharacters) {
+    window.drawCharacters();
+  }
 }
 
 // Initial draw
