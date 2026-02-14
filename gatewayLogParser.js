@@ -12,6 +12,8 @@ const path = require('path');
 const AGENT_NAME_MAP = {
   'nova': 'Nova',
   'zero': 'Zero-1',
+  'zero-2': 'Zero-2',
+  'zero-3': 'Zero-3',
   'delta': 'Delta',
   'bestie': 'Bestie',
   'dexter': 'Dexter',
@@ -36,20 +38,10 @@ class GatewayLogParser {
   }
   
   _initializeAgents() {
-    const agents = [
-      { id: 'nova', name: 'Nova' },
-      { id: 'zero', name: 'Zero-1' },
-      { id: 'zero-2', name: 'Zero-2' },
-      { id: 'zero-3', name: 'Zero-3' },
-      { id: 'delta', name: 'Delta' },
-      { id: 'bestie', name: 'Bestie' },
-      { id: 'dexter', name: 'Dexter' }
-    ];
-    
-    for (const agent of agents) {
-      this.activeAgents.set(agent.id, {
-        id: agent.id,
-        name: agent.name,
+    for (const [id, name] of Object.entries(AGENT_NAME_MAP)) {
+      this.activeAgents.set(id, {
+        id: id,
+        name: name,
         state: 'idle',
         currentTask: null,
         lastActive: new Date().toISOString()
