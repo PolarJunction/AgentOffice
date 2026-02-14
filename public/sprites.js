@@ -7,6 +7,9 @@ const MIN_WIDTH = window.MIN_WIDTH || 1200;
 const MIN_HEIGHT = window.MIN_HEIGHT || 800;
 let scale = window.scale || 1;
 
+// Walking speed (units per millisecond) - adjustable
+const WALKING_SPEED = 0.0008;
+
 // Character states for the state machine
 const CharacterStates = {
   IDLE: 'idle',
@@ -14,6 +17,153 @@ const CharacterStates = {
   WORKING: 'working',
   WALKING_TO_LOUNGE: 'walking_to_lounge'
 };
+
+// ============================================================================
+// Waypoint Path System
+// ============================================================================
+// Define key points in the office layout (as fractions 0-1)
+// These waypoints create paths through the hallway connecting lounge to desks
+
+const Waypoints = {
+  // Lounge area waypoints (left side)
+  LOUNGE_ENTER: { x: 0.08, y: 0.55 },      // Main lounge entry point
+  LOUNGE_CENTER: { x: 0.15, y: 0.65 },      // Lounge center
+  LOUNGE_EXIT: { x: 0.30, y: 0.50 },       // Exit to hallway
+  
+  // Hallway waypoints (center)
+  HALLWAY_LEFT: { x: 0.35, y: 0.50 },      // Hallway left
+  HALLWAY_CENTER: { x: 0.50, y: 0.50 },    // Hallway center intersection
+  HALLWAY_RIGHT: { x: 0.65, y: 0.50 },     // Hallway right
+  
+  // Desk area waypoints (right side)
+  HALLWAY_TO_DESKS: { x: 0.70, y: 0.50 },  // Entry to desk area
+  
+  // Individual desk destination waypoints (at the desks)
+  NOVA_DESK: { x: 0.15, y: 0.12 },
+  ZERO1_DESK: { x: 0.12, y: 0.40 },
+  ZERO2_DESK: { x: 0.44, y: 0.40 },
+  ZERO3_DESK: { x: 0.76, y: 0.40 },
+  DELTA_DESK: { x: 0.72, y: 0.12 },
+  BESTIE_DESK: { x: 0.22, y: 0.62 },
+  DEXTER_DESK: { x: 0.78, y: 0.62 }
+};
+
+// Define paths from lounge to each desk
+const PATHS = {
+  nova: [
+    Waypoints.LOUNGE_ENTER,
+    Waypoints.LOUNGE_EXIT,
+    Waypoints.HALLWAY_LEFT,
+    Waypoints.HALLWAY_CENTER,
+    Waypoints.HALLWAY_RIGHT,
+    Waypoints.HALLWAY_TO_DESKS,
+    Waypoints.NOVA_DESK
+  ],
+  zero1: [
+    Waypoints.LOUNGE_ENTER,
+    Waypoints.LOUNGE_EXIT,
+    Waypoints.HALLWAY_LEFT,
+    Waypoints.HALLWAY_CENTER,
+    Waypoints.HALLWAY_RIGHT,
+    Waypoints.HALLWAY_TO_DESKS,
+    Waypoints.ZERO1_DESK
+  ],
+  zero2: [
+    Waypoints.LOUNGE_ENTER,
+    Waypoints.LOUNGE_EXIT,
+    Waypoints.HALLWAY_LEFT,
+    Waypoints.HALLWAY_CENTER,
+    Waypoints.HALLWAY_RIGHT,
+    Waypoints.HALLWAY_TO_DESKS,
+    Waypoints.ZERO2_DESK
+  ],
+  zero3: [
+    Waypoints.LOUNGE_ENTER,
+    Waypoints.LOUNGE_EXIT,
+    Waypoints.HALLWAY_LEFT,
+    Waypoints.HALLWAY_CENTER,
+    Waypoints.HALLWAY_RIGHT,
+    Waypoints.HALLWAY_TO_DESKS,
+    Waypoints.ZERO3_DESK
+  ],
+  delta: [
+    Waypoints.LOUNGE_ENTER,
+    Waypoints.LOUNGE_EXIT,
+    Waypoints.HALLWAY_LEFT,
+    Waypoints.HALLWAY_CENTER,
+    Waypoints.HALLWAY_RIGHT,
+    Waypoints.HALLWAY_TO_DESKS,
+    Waypoints.DELTA_DESK
+  ],
+  bestie: [
+    Waypoints.LOUNGE_ENTER,
+    Waypoints.LOUNGE_EXIT,
+    Waypoints.HALLWAY_LEFT,
+    Waypoints.HALLWAY_CENTER,
+    Waypoints.HALLWAY_RIGHT,
+    Waypoints.HALLWAY_TO_DESKS,
+    Waypoints.BESTIE_DESK
+  ],
+  dexter: [
+    Waypoints.LOUNGE_ENTER,
+    Waypoints.LOUNGE_EXIT,
+    Waypoints.HALLWAY_LEFT,
+    Waypoints.HALLWAY_CENTER,
+    Waypoints.HALLWAY_RIGHT,
+    Waypoints.HALLWAY_TO_DESKS,
+    Waypoints.DEXTER_DESK
+  ]
+};
+
+// Paths from desk back to lounge (reverse of desk-to-lounge paths)
+const PATHS_TO_LOUNGE = {
+  nova: [...PATHS.nova].reverse(),
+  zero1: [...PATHS.zero1].reverse(),
+  zero2: [...PATHS.zero2].reverse(),
+  zero3: [...PATHS.zero3].reverse(),
+  delta: [...PATHS.delta].reverse(),
+  bestie: [...PATHS.bestie].reverse(),
+  dexter: [...PATHS.dexter].reverse()
+};
+
+// Linear interpolation function
+function lerp(start, end, t) {
+  return start + (end - start) * t;
+}
+
+// Get point along a path at parameter t (0-1)
+function getPointOnPath(path, t) {
+  if (!path || path.length < 2) return null;
+  
+  const totalSegments = path.length - 1;
+  const segmentT = t * totalSegments;
+  const segmentIndex = Math.min(Math.floor(segmentT), totalSegments - 1);
+  const localT = segmentT - segmentIndex;
+  
+  const p1 = path[segmentIndex];
+  const p2 = path[segmentIndex + 1];
+  
+  return {
+    x: lerp(p1.x, p2.x, localT),
+    y: lerp(p1.y, p2.y, localT)
+  };
+}
+
+// Calculate distance between two points
+function distance(p1, p2) {
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+// Calculate total path length
+function getPathLength(path) {
+  let length = 0;
+  for (let i = 0; i < path.length - 1; i++) {
+    length += distance(path[i], path[i + 1]);
+  }
+  return length;
+}
 
 // Character definitions with positions matching the office layout
 // Desk coordinates defined as fractions of office dimensions (0-1 range)
@@ -25,7 +175,7 @@ const CHARACTERS = [
     position: 'corner_office',
     // Positioned in Nova's corner office (right top)
     offsetX: 0.15,
-    offsetY: 0.12,
+    offsetY: 0.65,
     // Specific desk coordinates for Nova's corner office
     deskX: 0.15,
     deskY: 0.12,
@@ -33,17 +183,21 @@ const CHARACTERS = [
     state: CharacterStates.IDLE,
     frame: 0,
     targetX: 0.15,
-    targetY: 0.12,
-    baseColor: '#ff6b9d'
+    targetY: 0.65,
+    baseColor: '#ff6b9d',
+    // Pathfinding properties
+    path: null,
+    pathProgress: 0,
+    pathLength: 0
   },
   {
     id: 'zero1',
     name: 'Zero-1',
     color: '#6bff6b',
     position: 'pod_1',
-    // Positioned in Zero Pod 1 (middle-right area)
+    // Positioned in lounge initially (will walk to pod)
     offsetX: 0.12,
-    offsetY: 0.40,
+    offsetY: 0.65,
     // Specific desk coordinates for Zero Pod 1
     deskX: 0.12,
     deskY: 0.40,
@@ -51,98 +205,122 @@ const CHARACTERS = [
     state: CharacterStates.IDLE,
     frame: 0,
     targetX: 0.12,
-    targetY: 0.40,
-    baseColor: '#6bff6b'
+    targetY: 0.65,
+    baseColor: '#6bff6b',
+    // Pathfinding properties
+    path: null,
+    pathProgress: 0,
+    pathLength: 0
   },
   {
     id: 'zero2',
     name: 'Zero-2',
     color: '#6bffff',
     position: 'pod_2',
-    // Positioned in Zero Pod 2 (middle-right area)
-    offsetX: 0.44,
-    offsetY: 0.40,
+    // Positioned in lounge initially
+    offsetX: 0.15,
+    offsetY: 0.70,
     // Specific desk coordinates for Zero Pod 2
     deskX: 0.44,
     deskY: 0.40,
     // State machine properties
     state: CharacterStates.IDLE,
     frame: 0,
-    targetX: 0.44,
-    targetY: 0.40,
-    baseColor: '#6bffff'
+    targetX: 0.15,
+    targetY: 0.70,
+    baseColor: '#6bffff',
+    // Pathfinding properties
+    path: null,
+    pathProgress: 0,
+    pathLength: 0
   },
   {
     id: 'zero3',
     name: 'Zero-3',
     color: '#6b6bff',
     position: 'pod_3',
-    // Positioned in Zero Pod 3 (middle-right area)
-    offsetX: 0.76,
-    offsetY: 0.40,
+    // Positioned in lounge initially
+    offsetX: 0.18,
+    offsetY: 0.65,
     // Specific desk coordinates for Zero Pod 3
     deskX: 0.76,
     deskY: 0.40,
     // State machine properties
     state: CharacterStates.IDLE,
     frame: 0,
-    targetX: 0.76,
-    targetY: 0.40,
-    baseColor: '#6b6bff'
+    targetX: 0.18,
+    targetY: 0.65,
+    baseColor: '#6b6bff',
+    // Pathfinding properties
+    path: null,
+    pathProgress: 0,
+    pathLength: 0
   },
   {
     id: 'delta',
     name: 'Delta',
     color: '#ffff6b',
     position: 'delta_station',
-    // Positioned at Delta's review station (right top)
-    offsetX: 0.72,
-    offsetY: 0.12,
+    // Positioned in lounge initially
+    offsetX: 0.12,
+    offsetY: 0.75,
     // Specific desk coordinates for Delta station
     deskX: 0.72,
     deskY: 0.12,
     // State machine properties
     state: CharacterStates.IDLE,
     frame: 0,
-    targetX: 0.72,
-    targetY: 0.12,
-    baseColor: '#ffff6b'
+    targetX: 0.12,
+    targetY: 0.75,
+    baseColor: '#ffff6b',
+    // Pathfinding properties
+    path: null,
+    pathProgress: 0,
+    pathLength: 0
   },
   {
     id: 'bestie',
     name: 'Bestie',
     color: '#ff9d6b',
     position: 'reception',
-    // Positioned at reception desk (right bottom left)
-    offsetX: 0.22,
-    offsetY: 0.62,
+    // Positioned in lounge initially
+    offsetX: 0.15,
+    offsetY: 0.80,
     // Specific desk coordinates for Bestie reception
     deskX: 0.22,
     deskY: 0.62,
     // State machine properties
     state: CharacterStates.IDLE,
     frame: 0,
-    targetX: 0.22,
-    targetY: 0.62,
-    baseColor: '#ff9d6b'
+    targetX: 0.15,
+    targetY: 0.80,
+    baseColor: '#ff9d6b',
+    // Pathfinding properties
+    path: null,
+    pathProgress: 0,
+    pathLength: 0
   },
   {
     id: 'dexter',
     name: 'Dexter',
     color: '#9d6bff',
     position: 'flex_desk',
-    // Positioned at Dexter's flex desk (right bottom right)
-    offsetX: 0.78,
-    offsetY: 0.62,
+    // Positioned in lounge initially
+    offsetX: 0.18,
+    offsetY: 0.70,
     // Specific desk coordinates for Dexter flex desk
     deskX: 0.78,
     deskY: 0.62,
     // State machine properties
     state: CharacterStates.IDLE,
     frame: 0,
-    targetX: 0.78,
-    targetY: 0.62,
-    baseColor: '#9d6bff'
+    targetX: 0.18,
+    targetY: 0.70,
+    baseColor: '#9d6bff',
+    // Pathfinding properties
+    path: null,
+    pathProgress: 0,
+    pathLength: 0
   }
 ];
 
@@ -184,31 +362,79 @@ function setCharacterState(characterId, newState) {
     { x: 0.12, y: 0.50 }   // Near kitchen
   ];
   
-  // Set target positions based on new state
+  // Set target positions and paths based on new state
   switch (newState) {
     case CharacterStates.IDLE:
       // Return to lounge/kitchen area (random position in left side)
+      // Use pathfinding from current position
       const loungePos = loungePositions[Math.floor(Math.random() * loungePositions.length)];
+      // Find a path to the lounge position
+      character.path = findPathToLounge(character.offsetX, character.offsetY);
+      character.pathProgress = 0;
+      character.pathLength = character.path ? getPathLength(character.path) : 0;
       character.targetX = loungePos.x;
       character.targetY = loungePos.y;
       break;
+      
     case CharacterStates.WALKING_TO_DESK:
-      // Move to their specific desk position using deskX/deskY
+      // Move to their specific desk using path system
+      character.path = PATHS[character.id];
+      character.pathProgress = 0;
+      character.pathLength = character.path ? getPathLength(character.path) : 0;
       character.targetX = character.deskX;
       character.targetY = character.deskY;
       break;
+      
     case CharacterStates.WORKING:
-      // Stay at desk
+      // Stay at desk - clear any path
+      character.path = null;
+      character.pathProgress = 0;
       character.targetX = character.deskX;
       character.targetY = character.deskY;
       break;
+      
     case CharacterStates.WALKING_TO_LOUNGE:
-      // Move back to lounge
+      // Move back to lounge using path system
+      character.path = findPathFromDesk(character.id);
+      character.pathProgress = 0;
+      character.pathLength = character.path ? getPathLength(character.path) : 0;
       const loungeReturnPos = loungePositions[Math.floor(Math.random() * loungePositions.length)];
       character.targetX = loungeReturnPos.x;
       character.targetY = loungeReturnPos.y;
       break;
   }
+}
+
+// Find path from current position to lounge area
+function findPathToLounge(startX, startY) {
+  // Simple: start from lounge entrance and reverse from there
+  // Build a path from current position to lounge
+  const loungeEntry = Waypoints.LOUNGE_ENTER;
+  
+  // Check if we're on the right side (desk area) or left side (lounge)
+  if (startX > 0.6) {
+    // Currently at desk area - need to go through hallway
+    return [
+      { x: startX, y: startY },
+      Waypoints.HALLWAY_TO_DESKS,
+      Waypoints.HALLWAY_RIGHT,
+      Waypoints.HALLWAY_CENTER,
+      Waypoints.HALLWAY_LEFT,
+      Waypoints.LOUNGE_EXIT,
+      loungeEntry
+    ];
+  } else {
+    // Already in lounge area - simple path
+    return [
+      { x: startX, y: startY },
+      loungeEntry
+    ];
+  }
+}
+
+// Get path from desk back to lounge
+function findPathFromDesk(characterId) {
+  return PATHS_TO_LOUNGE[characterId] || null;
 }
 
 // Update character animation frame
@@ -223,25 +449,52 @@ function updateCharacterFrame(character, deltaTime) {
   }
 }
 
-// Interpolate position (for walking states)
+// Update character position along waypoint path (using linear interpolation)
 function updateCharacterPosition(character, deltaTime) {
   if (character.state === CharacterStates.WALKING_TO_DESK || 
       character.state === CharacterStates.WALKING_TO_LOUNGE) {
-    // Move towards target
-    const speed = 0.0005 * deltaTime; // Movement speed
-    const dx = character.targetX - character.offsetX;
-    const dy = character.targetY - character.offsetY;
-    const dist = Math.sqrt(dx * dx + dy * dy);
     
-    if (dist > 0.01) {
-      character.offsetX += (dx / dist) * speed * Math.min(dist, 0.1);
-      character.offsetY += (dy / dist) * speed * Math.min(dist, 0.1);
-    } else {
-      // Reached target, switch to appropriate state
-      if (character.state === CharacterStates.WALKING_TO_DESK) {
-        setCharacterState(character.id, CharacterStates.WORKING);
+    // Use path system for movement
+    if (character.path && character.path.length >= 2) {
+      // Calculate how much progress to add based on speed and path length
+      const progressIncrement = (WALKING_SPEED * deltaTime) / character.pathLength;
+      character.pathProgress += progressIncrement;
+      
+      if (character.pathProgress >= 1) {
+        // Reached the end of the path
+        character.offsetX = character.targetX;
+        character.offsetY = character.targetY;
+        
+        // Switch to appropriate state
+        if (character.state === CharacterStates.WALKING_TO_DESK) {
+          setCharacterState(character.id, CharacterStates.WORKING);
+        } else {
+          setCharacterState(character.id, CharacterStates.IDLE);
+        }
       } else {
-        setCharacterState(character.id, CharacterStates.IDLE);
+        // Interpolate position along path
+        const pos = getPointOnPath(character.path, character.pathProgress);
+        if (pos) {
+          character.offsetX = pos.x;
+          character.offsetY = pos.y;
+        }
+      }
+    } else {
+      // Fallback to direct movement if no path
+      const speed = 0.0005 * deltaTime;
+      const dx = character.targetX - character.offsetX;
+      const dy = character.targetY - character.offsetY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      
+      if (dist > 0.01) {
+        character.offsetX += (dx / dist) * speed * Math.min(dist, 0.1);
+        character.offsetY += (dy / dist) * speed * Math.min(dist, 0.1);
+      } else {
+        if (character.state === CharacterStates.WALKING_TO_DESK) {
+          setCharacterState(character.id, CharacterStates.WORKING);
+        } else {
+          setCharacterState(character.id, CharacterStates.IDLE);
+        }
       }
     }
   }
@@ -364,5 +617,10 @@ function drawCharacters(deltaTime = 16) {
 // Export for use in app.js
 window.CHARACTERS = CHARACTERS;
 window.CharacterStates = CharacterStates;
+window.WALKING_SPEED = WALKING_SPEED;
+window.Waypoints = Waypoints;
+window.PATHS = PATHS;
 window.drawCharacters = drawCharacters;
 window.setCharacterState = setCharacterState;
+window.getPointOnPath = getPointOnPath;
+window.getPathLength = getPathLength;
