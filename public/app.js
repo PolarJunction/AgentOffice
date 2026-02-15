@@ -401,22 +401,19 @@ function resizeCanvas() {
   canvas.style.width = window.innerWidth + 'px';
   canvas.style.height = window.innerHeight + 'px';
 
-  // Don't scale context - draw in CSS pixel coordinates
-  // scale = Math.min(canvas.width / MIN_WIDTH / dpr, canvas.height / MIN_HEIGHT / dpr);
+  // Calculate scale based on window size
   scale = Math.min(window.innerWidth / MIN_WIDTH, window.innerHeight / MIN_HEIGHT);
 
-  // Enforce min/max scale constraints
-  const MIN_SCALE = 0.4;
-  const MAX_SCALE = 1.5;
+  // Enforce min/max scale constraints - use lower min to allow bigger rendering
+  const MIN_SCALE = 0.6;
+  const MAX_SCALE = 2.0;
   scale = Math.max(MIN_SCALE, Math.min(scale, MAX_SCALE));
 
   window.scale = scale;
 
-  console.log('resizeCanvas:', { width: canvas.width, height: canvas.height, dpr, scale, MIN_WIDTH, MIN_HEIGHT, innerWidth: window.innerWidth, innerHeight: window.innerHeight });
-  
   // Update scale indicator if exists
   updateScaleIndicator();
-  
+
   draw();
 }
 
