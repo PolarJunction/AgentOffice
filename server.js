@@ -35,6 +35,26 @@ app.get('/api/status', (req, res) => {
   });
 });
 
+// Agent stats endpoint - returns agent statistics
+app.get('/api/stats', (req, res) => {
+  const agentId = req.query.agentId;
+  let stats;
+  
+  if (agentId) {
+    stats = logParser.getAgentStatsById(agentId);
+    if (!stats) {
+      return res.status(404).json({ error: 'Agent not found' });
+    }
+  } else {
+    stats = logParser.getAgentStats();
+  }
+  
+  res.json({ 
+    stats,
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Serve index.html at root
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
