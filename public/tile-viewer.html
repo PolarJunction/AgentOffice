@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Tile Viewer - Coordinate Picker</title>
+<style>
+  body { background: #1a1a2e; color: #eee; font-family: monospace; margin: 20px; }
+  .sheet-container { margin-bottom: 40px; }
+  .sheet-container h2 { color: #6bf; }
+  .canvas-wrapper { position: relative; display: inline-block; border: 2px solid #444; }
+  canvas { display: block; image-rendering: pixelated; }
+  #info { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.9); padding: 15px;
+    border: 1px solid #6bf; border-radius: 8px; min-width: 250px; z-index: 100; }
+  #info h3 { margin: 0 0 10px; color: #6bf; }
+  #info p { margin: 4px 0; }
+  #preview { border: 2px solid #fff; margin-top: 10px; image-rendering: pixelated; background: #333; }
+  .coord { color: #ff6; font-weight: bold; }
+</style>
+</head>
+<body>
+<h1>Tile Viewer - Hover to see coordinates</h1>
+<div id="info">
+  <h3>Tile Info</h3>
+  <p>Sheet: <span id="sheetName">-</span></p>
+  <p>Col: <span id="colNum" class="coord">-</span>, Row: <span id="rowNum" class="coord">-</span></p>
+  <p>Pixel: (<span id="px">-</span>, <span id="py">-</span>)</p>
+  <p>Size: <span id="sheetSize">-</span></p>
+  <canvas id="preview" width="64" height="64"></canvas>
+</div>
+
+<div id="sheets"></div>
+
+<script>
+const TILE = 16;
+const SCALE = 4; // Zoom level for viewing
+const sheets = [
+  { name: 'office_furniture', src: '/tiles/office_furniture_16x16.png', label: 'Office Furniture (16×53 grid)' },
+  { name: 'floors', src: '/tiles/floors_16x16.png', label: 'Floors (15×40 grid)' },
+  { name: 'walls', src: '/tiles/walls_16x16.png', label: 'Walls (32×40 grid)' },
+  { name: 'room_builder', src: '/tiles/room_builder_16x16.png', label: 'Room Builder Office (16×14 grid)' },
+  { name: 'agent01', src: '/tiles/characters/agent01.png', label: 'Character Agent01' },
+];
+
+const previewCtx = document.getElementById('preview').getContext('2d');
+
+sheets.forEach(info => {
+  const img = new Image();
+  img.onload = () => {
+    const cols = Math.floor(img.width / TILE);
+    const rows = Math.floor(img.height / TILE);
+
+    const div = document.createElement('div');
+    div.className = 'sheet-container';
+    div.innerHTML = `<h2>${info.label} — ${img.width}×${img.height} (${cols}c × ${rows}r)</h2>`;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'canvas-wrapper';
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width * SCALE;
+    canvas.height = img.height * SCALE;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+    // Draw grid
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 1;
+    for (let c = 0; c <= cols; c++) {
+      ctx.beginPath();
+      ctx.moveTo(c * TILE * SCALE, 0);
+      ctx.lineTo(c * TILE * SCALE, canvas.height);
+      ctx.stroke();
+    }
+    for (let r = 0; r <= rows; r++) {
+      ctx.beginPath();
+      ctx.moveTo(0, r * TILE * SCALE);
+      ctx.lineTo(canvas.width, r * TILE * SCALE);
+      ctx.stroke();
+    }
+
+    // Row/col labels
+    ctx.fillStyle = 'rgba(255,100,100,0.8)';
+    ctx.font = '10px monospace';
+    for (let c = 0; c < cols; c++) {
+      ctx.fillText(c, c * TILE * SCALE + 2, 10);
+    }
+    for (let r = 0; r < rows; r++) {
+      ctx.fillText(r, 2, r * TILE * SCALE + 12);
+    }
+
+    canvas.addEventListener('mousemove', e => {
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      const col = Math.floor(mx / (TILE * SCALE));
+      const row = Math.floor(my / (TILE * SCALE));
+
+      document.getElementById('sheetName').textContent = info.name;
+      document.getElementById('colNum').textContent = col;
+      document.getElementById('rowNum').textContent = row;
+      document.getElementById('px').textContent = col * TILE;
+      document.getElementById('py').textContent = row * TILE;
+      document.getElementById('sheetSize').textContent = `${cols}c × ${rows}r`;
+
+      // Preview tile at 4x
+      previewCtx.clearRect(0, 0, 64, 64);
+      previewCtx.imageSmoothingEnabled = false;
+      previewCtx.drawImage(img, col * TILE, row * TILE, TILE, TILE, 0, 0, 64, 64);
+    });
+
+    wrapper.appendChild(canvas);
+    div.appendChild(wrapper);
+    document.getElementById('sheets').appendChild(div);
+  };
+  img.src = info.src;
+});
+</script>
+</body>
+</html>

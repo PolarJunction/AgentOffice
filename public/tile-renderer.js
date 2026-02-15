@@ -6,11 +6,16 @@
  *   - office_furniture_16x16.png (256×848, 16col × 53row) - Office furniture
  *   - floors_16x16.png (240×640, 15col × 40row) - Floor tiles
  *   - walls_16x16.png (512×640, 32col × 40row) - Wall tiles
+ *   - characters/agent01-07.png (896×656 each) - Character sprites
  */
 
 const TILE_SIZE = 16;
 const MAP_WIDTH = 50;
 const MAP_HEIGHT = 35;
+
+// Character frame dimensions in the sprite sheets
+const CHAR_FRAME_W = 16;
+const CHAR_FRAME_H = 32;
 
 // Tile types
 const TILE = {
@@ -48,7 +53,7 @@ const TILE = {
   DIVIDER: 80,
 };
 
-// Character color map
+// Character color map (fallback)
 const CHARACTER_COLORS = {
   nova: '#ff6b9d',
   zero1: '#6bff6b',
@@ -61,7 +66,7 @@ const CHARACTER_COLORS = {
 };
 
 // ============================================================================
-// Tile coordinate mapping
+// Tile coordinate mapping (verified via tile-viewer.html grid overlay)
 // ============================================================================
 // Each entry: { sheet, col, row, w?, h? }
 // sheet: 'office' | 'floor' | 'wall'
@@ -71,52 +76,58 @@ const CHARACTER_COLORS = {
 
 const TILE_COORDS = {
   // --- Floors (from floors_16x16.png, 15col × 40row) ---
-  // Columns group: 0-2 = light blue, 3-5 = cream, 6-8 = pink, 9-11 = gray, 12-14 = dark
-  // Row 0 = basic solid, rows 1-2 = subtle pattern
-  [TILE.FLOOR_DARK]: { sheet: 'floor', col: 9, row: 0 },  // gray clean tile
-  [TILE.FLOOR_LIGHT]: { sheet: 'floor', col: 3, row: 0 },  // cream clean tile
-  [TILE.RUG]: { sheet: 'floor', col: 12, row: 2 },   // dark wood
+  // 5 color groups of 3 cols each: 0-2=blue/gray, 3-5=cream, 6-8=pink, 9-11=gray, 12-14=dark/wood
+  // rows 0-1 are basic solids, rows 2-3 = subtle grid pattern
+  [TILE.FLOOR_DARK]: { sheet: 'floor', col: 10, row: 2 },   // neutral gray tile
+  [TILE.FLOOR_LIGHT]: { sheet: 'floor', col: 4, row: 2 },   // warm cream tile
+  [TILE.RUG]: { sheet: 'floor', col: 13, row: 0 },   // dark wood look
 
   // --- Walls (from walls_16x16.png, 32col × 40row) ---
-  // Groups of 4 cols: col 0-3 = light/white, 4-7 = cream/beige, etc.
-  // Row layout per group: top-row, front/body, bottom/base
-  [TILE.WALL]: { sheet: 'wall', col: 1, row: 0 },      // white wall top
-  [TILE.WALL_FRONT]: { sheet: 'wall', col: 1, row: 2 },      // white wall body
-  [TILE.WALL_LEFT]: { sheet: 'wall', col: 0, row: 1 },      // left edge
-  [TILE.WALL_RIGHT]: { sheet: 'wall', col: 3, row: 1 },      // right edge
-  [TILE.WALL_CORNER_TL]: { sheet: 'wall', col: 0, row: 0 },  // top-left corner
-  [TILE.WALL_CORNER_TR]: { sheet: 'wall', col: 3, row: 0 },  // top-right corner
+  // Wall color groups span 4 cols × 5 rows each
+  // cols 0-3 = diamond/decorative, 4-7 = white/light, 8-11 = tan/beige, 12-15 = wood
+  // Within each 4-col group: row+0 = top crown/trim, row+1 = body upper, row+2 = body center
+  //                          row+3 = baseboard, row+4 = shadow
+  // The white walls are at cols 4-7, starting at row 0
+  [TILE.WALL]: { sheet: 'wall', col: 5, row: 0 },   // wall top (white trim)
+  [TILE.WALL_FRONT]: { sheet: 'wall', col: 5, row: 2 },   // wall body (white, clean)
+  [TILE.WALL_LEFT]: { sheet: 'wall', col: 4, row: 1 },   // left edge
+  [TILE.WALL_RIGHT]: { sheet: 'wall', col: 7, row: 1 },   // right edge
+  [TILE.WALL_CORNER_TL]: { sheet: 'wall', col: 4, row: 0 },   // top-left corner
+  [TILE.WALL_CORNER_TR]: { sheet: 'wall', col: 7, row: 0 },   // top-right corner
 
   // --- Kitchen items (from office_furniture_16x16.png, 16col × 53row) ---
-  // Row 0-2: Large desks (beige)
-  // Row 3: Couches
-  // Row 4: Office chairs, small items
-  // Row 5-7: Monitors, decorations, electronics
-  // Row 8-9: Dark shelves, filing cabinets
-  [TILE.COUNTER]: { sheet: 'office', col: 0, row: 16 },  // long desk/counter top
-  [TILE.COUNTER_EDGE]: { sheet: 'office', col: 0, row: 17 },  // counter front
-  [TILE.FRIDGE]: { sheet: 'office', col: 14, row: 8 },   // tall cabinet as fridge
-  [TILE.COFFEE]: { sheet: 'office', col: 12, row: 7 },   // small appliance
+  // Verified from tile viewer grid:
+  // Rows 0-3: Large beige desks (each ~5 tiles × 2 rows for top+front)
+  //   - cols 0-4 = beige desk, 5-9 = darker desk, 10-13 = gray desk
+  // Row 8: Gray office chairs (cols 0-3), tall plant (col 5), small monitors
+  // Row 10-11: Brown leather armchairs
+  // Row 12-13: Wall art, plants, blue chairs, electronics
+  [TILE.COUNTER]: { sheet: 'office', col: 1, row: 0 },   // beige desk top as counter surface
+  [TILE.COUNTER_EDGE]: { sheet: 'office', col: 1, row: 2 },   // desk front as counter edge
+  [TILE.FRIDGE]: { sheet: 'office', col: 15, row: 0 },   // use picture/tall item
+  [TILE.COFFEE]: { sheet: 'office', col: 6, row: 10 },  // small appliance-like item
 
   // --- Desks (from office_furniture_16x16.png) ---
-  [TILE.DESK_TOP]: { sheet: 'office', col: 0, row: 1 },  // desk surface top
-  [TILE.DESK_FRONT]: { sheet: 'office', col: 0, row: 2 },  // desk front panel
-  [TILE.DESK_PC]: { sheet: 'office', col: 8, row: 5 },  // monitor on desk
-  [TILE.CHAIR]: { sheet: 'office', col: 0, row: 4 },  // office chair
+  // Desk set at cols 5-9: top row=0 (surface), row 2 (front panel with dark drawers)
+  [TILE.DESK_TOP]: { sheet: 'office', col: 6, row: 0 },   // desk surface center tile
+  [TILE.DESK_FRONT]: { sheet: 'office', col: 6, row: 2 },   // desk front/drawer panel
+  [TILE.DESK_PC]: { sheet: 'office', col: 7, row: 8 },   // small monitor on desk
+  [TILE.CHAIR]: { sheet: 'office', col: 0, row: 8 },   // gray office chair
 
   // --- Lounge furniture (from office_furniture_16x16.png) ---
-  [TILE.COUCH_L]: { sheet: 'office', col: 0, row: 3 },  // couch left
-  [TILE.COUCH_M]: { sheet: 'office', col: 2, row: 3 },  // couch middle
-  [TILE.COUCH_R]: { sheet: 'office', col: 4, row: 3 },  // couch right
-  [TILE.TABLE]: { sheet: 'office', col: 8, row: 1 },   // small table
+  // Purple/lavender couch at row 4, cols 0-3 (the large panel piece)
+  [TILE.COUCH_L]: { sheet: 'office', col: 0, row: 4 },   // couch left
+  [TILE.COUCH_M]: { sheet: 'office', col: 1, row: 4 },   // couch middle
+  [TILE.COUCH_R]: { sheet: 'office', col: 3, row: 4 },   // couch right
+  [TILE.TABLE]: { sheet: 'office', col: 7, row: 0 },   // desk surface used as table
 
   // --- Decorations (from office_furniture_16x16.png) ---
-  [TILE.PLANT_SMALL]: { sheet: 'office', col: 6, row: 4 },  // small plant
-  [TILE.PLANT_LARGE]: { sheet: 'office', col: 6, row: 5 },  // large plant bottom
-  [TILE.WATER_COOLER]: { sheet: 'office', col: 14, row: 5 },   // small appliance
-  [TILE.TV]: { sheet: 'office', col: 10, row: 6 },   // monitor/TV
-  [TILE.BOOKSHELF]: { sheet: 'office', col: 0, row: 8 },  // dark bookshelf
-  [TILE.DIVIDER]: { sheet: 'office', col: 0, row: 12 },  // cubicle divider
+  [TILE.PLANT_SMALL]: { sheet: 'office', col: 5, row: 8 },  // potted plant
+  [TILE.PLANT_LARGE]: { sheet: 'office', col: 5, row: 9 },  // plant bottom/large
+  [TILE.WATER_COOLER]: { sheet: 'office', col: 6, row: 11 },  // appliance or cooler
+  [TILE.TV]: { sheet: 'office', col: 8, row: 11 },  // monitor/TV
+  [TILE.BOOKSHELF]: { sheet: 'office', col: 10, row: 0 },  // gray desk/shelf top
+  [TILE.DIVIDER]: { sheet: 'office', col: 10, row: 2 },  // gray desk front as divider
 };
 
 // ============================================================================
@@ -124,6 +135,7 @@ const TILE_COORDS = {
 // ============================================================================
 
 const spriteSheets = {};
+const charSheets = {};  // Individual character sprite sheets
 const spritesReady = { office: false, floor: false, wall: false, chars: false };
 let sheetsLoaded = false;
 
@@ -139,12 +151,24 @@ function loadImage(src) {
   });
 }
 
+// Character sheet mapping: id -> sheet file number
+const CHAR_SHEET_MAP = {
+  nova: 'agent01',
+  zero1: 'agent02',
+  zero2: 'agent03',
+  zero3: 'agent04',
+  delta: 'agent05',
+  bestie: 'agent06',
+  dexter: 'agent07',
+  flash: 'agent01'  // fallback to agent01 for flash
+};
+
 async function initTileRenderer() {
-  const [officeImg, floorImg, wallImg, charImg] = await Promise.all([
+  // Load tile sheets
+  const [officeImg, floorImg, wallImg] = await Promise.all([
     loadImage('/tiles/office_furniture_16x16.png'),
     loadImage('/tiles/floors_16x16.png'),
     loadImage('/tiles/walls_16x16.png'),
-    loadImage('/tiles/characters/agent01.png'),
   ]);
 
   if (officeImg) {
@@ -162,17 +186,31 @@ async function initTileRenderer() {
     spritesReady.wall = true;
     console.log(`Wall tileset loaded: ${wallImg.width}×${wallImg.height}`);
   }
-  if (charImg) {
-    spriteSheets.chars = charImg;
+
+  // Load individual character sprite sheets
+  const charIds = ['agent01', 'agent02', 'agent03', 'agent04', 'agent05', 'agent06', 'agent07'];
+  const charPromises = charIds.map(id => loadImage(`/tiles/characters/${id}.png`));
+  const charImages = await Promise.all(charPromises);
+
+  let charsLoaded = 0;
+  charIds.forEach((id, i) => {
+    if (charImages[i]) {
+      charSheets[id] = charImages[i];
+      charsLoaded++;
+    }
+  });
+
+  if (charsLoaded > 0) {
     spritesReady.chars = true;
-    console.log('Character sprites loaded');
+    console.log(`Character sprite sheets loaded: ${charsLoaded}/7`);
   }
 
   sheetsLoaded = true;
   console.log('Tile renderer ready -',
     'office:', spritesReady.office,
     'floor:', spritesReady.floor,
-    'wall:', spritesReady.wall);
+    'wall:', spritesReady.wall,
+    'chars:', spritesReady.chars);
   return true;
 }
 
@@ -594,57 +632,90 @@ const CHARACTERS_SPRITES = [
 ];
 
 function drawCharacterSprite(ctx, charId, x, y, scale, frame = 0) {
-  const size = TILE_SIZE * scale;
   const charData = CHARACTERS_SPRITES.find(c => c.id === charId) || { color: '#ff00ff' };
 
-  // Try sprite sheet
-  if (spritesReady.chars && spriteSheets.chars) {
-    const charIndex = CHARACTERS_SPRITES.findIndex(c => c.id === charId);
-    if (charIndex >= 0) {
+  // Sprite sheet character rendering
+  // Each character sheet (896×656) has the front-facing idle pose at position (0, 0)
+  // Frame size: 16px wide × 32px tall (full head + body)
+  if (spritesReady.chars) {
+    const sheetId = CHAR_SHEET_MAP[charId];
+    const sheet = sheetId ? charSheets[sheetId] : null;
+
+    if (sheet) {
+      const srcW = CHAR_FRAME_W;
+      const srcH = CHAR_FRAME_H;
+
+      // Destination size: match sprites.js SPRITE_WIDTH (32) × SPRITE_HEIGHT (40) 
+      const destW = 32 * scale;
+      const destH = 40 * scale;
+
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(
-        spriteSheets.chars,
-        charIndex * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE,
-        x - size / 2, y - size / 2, size, size
+        sheet,
+        0, 0,         // source position: front idle frame at top-left
+        srcW, srcH,   // source size: 16×32 pixels
+        x - destW / 2, y - destH / 2,  // center on character position
+        destW, destH  // destination size
       );
       return;
     }
   }
 
-  // Fallback pixel art
+  // Fallback pixel art character (sized to match SPRITE_WIDTH=32, SPRITE_HEIGHT=40)
   const c = charData.color;
-  const s = scale;
+  const w = 32 * scale;
+  const h = 40 * scale;
+  const cx = x - w / 2;
+  const cy = y - h / 2;
 
   // Shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
   ctx.beginPath();
-  ctx.ellipse(x, y + size * 0.4, size * 0.3, size * 0.1, 0, 0, Math.PI * 2);
+  ctx.ellipse(x, cy + h + 2 * scale, w * 0.4, 3 * scale, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Body
+  // Body (lower half)
   ctx.fillStyle = c;
-  ctx.fillRect(x - 5 * s, y - 6 * s, 10 * s, 10 * s);
+  ctx.fillRect(cx + 6 * scale, cy + 18 * scale, 20 * scale, 22 * scale);
 
-  // Highlight
-  ctx.fillStyle = c + '88';
-  ctx.fillRect(x - 4 * s, y - 5 * s, 4 * s, 4 * s);
+  // Head (upper half, slightly wider)
+  const headColor = lightenColor(c, 30);
+  ctx.fillStyle = headColor;
+  ctx.fillRect(cx + 4 * scale, cy + 2 * scale, 24 * scale, 20 * scale);
 
-  // Dark side
-  ctx.fillStyle = c + '44';
-  ctx.fillRect(x + 1 * s, y + 1 * s, 4 * s, 4 * s);
+  // Hair
+  ctx.fillStyle = darkenColor(c, 40);
+  ctx.fillRect(cx + 4 * scale, cy + 2 * scale, 24 * scale, 6 * scale);
 
   // Eyes
   ctx.fillStyle = '#fff';
-  ctx.fillRect(x - 3 * s, y - 3 * s, 2 * s, 3 * s);
-  ctx.fillRect(x + 1 * s, y - 3 * s, 2 * s, 3 * s);
-  ctx.fillStyle = '#000';
-  ctx.fillRect(x - 2 * s, y - 2 * s, 1 * s, 1 * s);
-  ctx.fillRect(x + 2 * s, y - 2 * s, 1 * s, 1 * s);
+  ctx.fillRect(cx + 8 * scale, cy + 10 * scale, 6 * scale, 6 * scale);
+  ctx.fillRect(cx + 18 * scale, cy + 10 * scale, 6 * scale, 6 * scale);
+  ctx.fillStyle = '#222';
+  ctx.fillRect(cx + 10 * scale, cy + 12 * scale, 3 * scale, 3 * scale);
+  ctx.fillRect(cx + 20 * scale, cy + 12 * scale, 3 * scale, 3 * scale);
 
-  // Border
-  ctx.strokeStyle = '#fff';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(x - 5 * s, y - 6 * s, 10 * s, 10 * s);
+  // Legs
+  ctx.fillStyle = darkenColor(c, 30);
+  ctx.fillRect(cx + 8 * scale, cy + 34 * scale, 7 * scale, 6 * scale);
+  ctx.fillRect(cx + 17 * scale, cy + 34 * scale, 7 * scale, 6 * scale);
+}
+
+// Color utility helpers
+function lightenColor(hex, amount) {
+  const num = parseInt(hex.replace('#', ''), 16);
+  const r = Math.min(255, (num >> 16) + amount);
+  const g = Math.min(255, ((num >> 8) & 0xff) + amount);
+  const b = Math.min(255, (num & 0xff) + amount);
+  return `rgb(${r},${g},${b})`;
+}
+
+function darkenColor(hex, amount) {
+  const num = parseInt(hex.replace('#', ''), 16);
+  const r = Math.max(0, (num >> 16) - amount);
+  const g = Math.max(0, ((num >> 8) & 0xff) - amount);
+  const b = Math.max(0, (num & 0xff) - amount);
+  return `rgb(${r},${g},${b})`;
 }
 
 // ============================================================================
