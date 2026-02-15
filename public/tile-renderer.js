@@ -144,17 +144,57 @@ function renderTiledLayers(ctx, offsetX, offsetY, scale) {
         const tileInfo = layer.tiles[y][x];
         if (!tileInfo) continue; // empty tile
 
-        const img = mapData.tilesetImages[tileInfo.tilesetImage];
+        const { srcX, srcY, tileWidth, tileHeight, tilesetImage, h, v, d } = tileInfo;
+        const img = mapData.tilesetImages[tilesetImage];
         if (!img) continue; // tileset image not loaded
 
-        ctx.drawImage(
-          img,
-          tileInfo.srcX, tileInfo.srcY,       // source position in tileset
-          tileInfo.tileWidth, tileInfo.tileHeight, // source size
-          offsetX + x * tileW,                 // destination X
-          offsetY + y * tileH,                 // destination Y
-          tileW, tileH                         // destination size
-        );
+        const destX = offsetX + x * tileW;
+        const destY = offsetY + y * tileH;
+
+        if (h || v || d) {
+          ctx.save();
+          // Translate to center of tile
+          ctx.translate(destX + tileW / 2, destY + tileH / 2);
+
+          // Apply Tiled transforms
+          // Order matters: in Canvas (pre-multiply), we apply "outer" transforms first.
+          // Tiled spec: "Diagonal flip is done first, followed by horizontal and vertical."
+          // Which means P' = V(H(D(P))).
+          // So code order: V, then H, then D.
+
+          // Vertical flip
+          if (v) {
+            ctx.scale(1, -1);
+          }
+          // Horizontal flip
+          if (h) {
+            ctx.scale(-1, 1);
+          }
+          // Diagonal flip: swap x/y axis
+          if (d) {
+            ctx.transform(0, 1, 1, 0, 0, 0);
+          }
+
+          // Draw centered
+          ctx.drawImage(
+            img,
+            srcX, srcY,
+            tileWidth, tileHeight,
+            -tileW / 2, -tileH / 2,
+            tileW, tileH
+          );
+          ctx.restore();
+        } else {
+          // Standard draw
+          ctx.drawImage(
+            img,
+            srcX, srcY,
+            tileWidth, tileHeight,
+            destX,
+            destY,
+            tileW, tileH
+          );
+        }
       }
     }
   }
