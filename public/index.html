@@ -448,7 +448,7 @@
       
       // Initialize trophy case
       if (typeof createTrophyCasePanel === 'function') {
-        trophyCasePanel = createTrophyCasePanel();
+        window.trophyCasePanel = createTrophyCasePanel();
         
         // Hook up trophy case button
         const trophyBtn = document.getElementById('trophy-case-btn');
