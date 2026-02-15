@@ -23,6 +23,28 @@
       image-rendering: crisp-edges;
     }
     
+    /* Trophy Case Button */
+    .trophy-case-btn {
+      position: fixed;
+      bottom: 20px;
+      left: 320px;
+      background: linear-gradient(135deg, #FFD70044, #FFA50044);
+      border: 2px solid #FFD700;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      font-size: 24px;
+      cursor: pointer;
+      z-index: 100;
+      box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .trophy-case-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 20px rgba(255, 215, 0, 0.5);
+    }
+    
     /* Timeline Panel - Phase 6 */
     .timeline-panel {
       position: fixed;
@@ -162,6 +184,7 @@
     </div>
     <div id="timeline-events" class="timeline-events"></div>
   </div>
+  <button id="trophy-case-btn" class="trophy-case-btn" title="Trophy Case">🏆</button>
   <script src="sprites.js"></script>
   <script src="mood-system.js"></script>
   <script src="app.js"></script>
@@ -172,6 +195,28 @@
       if (window.drawCharacters) {
         window.drawCharacters();
       }
+      
+      // Initialize trophy case
+      if (typeof createTrophyCasePanel === 'function') {
+        trophyCasePanel = createTrophyCasePanel();
+        
+        // Hook up trophy case button
+        const trophyBtn = document.getElementById('trophy-case-btn');
+        if (trophyBtn) {
+          trophyBtn.addEventListener('click', () => {
+            showTrophyCase();
+          });
+        }
+      }
+      
+      // Demo: Award some achievements for testing
+      setTimeout(() => {
+        if (window.awardTaskComplete) {
+          window.awardTaskComplete(120); // 2 minutes
+          window.awardTaskComplete(180);
+          window.awardTaskComplete(240);
+        }
+      }, 3000);
     });
   </script>
 </html>

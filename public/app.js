@@ -778,6 +778,10 @@ function gameLoop(timestamp) {
     window.drawMoodIndicators();
   }
   
+  // Draw achievement trophies and celebrations (Phase 6)
+  drawAchievementTrophies();
+  updateAndDrawCelebrations();
+  
   // Note: Demo mode disabled - states now driven by live API polling
   // To re-enable demo: uncomment cycleCharacterStates() call below
   // stateCycleTimer += deltaTime;
@@ -1624,12 +1628,465 @@ function getMonitorGlowColor() {
 // ============================================================================
 
 // Achievement badges configuration
+// ============================================================================
+// Achievement System - Phase 6
+// ============================================================================
+
+// Achievement definitions with tiers
 const ACHIEVEMENT_CONFIG = {
-  'first_task': { label: '🎯 First Task', color: '#4CAF50' },
-  'streak_master': { label: '🔥 Streak Master', color: '#FF9800' },
-  'night_owl': { label: '🦉 Night Owl', color: '#9C27B0' },
-  'early_bird': { label: '🌅 Early Bird', color: '#03A9F4' }
+  // Task achievements
+  'first_task': { 
+    label: '🎯 First Task', 
+    color: '#4CAF50', 
+    tier: 'bronze',
+    description: 'Complete your first task'
+  },
+  'streak_master': { 
+    label: '🔥 Streak Master', 
+    color: '#FF9800', 
+    tier: 'gold',
+    description: 'Complete 5 tasks in a row without errors'
+  },
+  'speed_demon': { 
+    label: '⚡ Speed Demon', 
+    color: '#F44336', 
+    tier: 'silver',
+    description: 'Complete a task in under 5 minutes'
+  },
+  
+  // Time-based achievements
+  'night_owl': { 
+    label: '🦉 Night Owl', 
+    color: '#9C27B0', 
+    tier: 'silver',
+    description: 'Work past 10 PM'
+  },
+  'early_bird': { 
+    label: '🌅 Early Bird', 
+    color: '#03A9F4', 
+    tier: 'silver',
+    description: 'Work before 7 AM'
+  },
+  
+  // Social achievements
+  'pizza_lover': { 
+    label: '🍕 Pizza Lover', 
+    color: '#FF5722', 
+    tier: 'gold',
+    description: 'Attend 10 pizza parties'
+  },
+  'code_reviewer': { 
+    label: '📝 Code Reviewer', 
+    color: '#2196F3', 
+    tier: 'gold',
+    description: 'Have 10 PRs reviewed'
+  },
+  
+  // Bug achievements
+  'bug_hunter': { 
+    label: '🐛 Bug Hunter', 
+    color: '#8BC34A', 
+    tier: 'silver',
+    description: 'Fix 5 bugs'
+  }
 };
+
+// Achievement tier colors
+const TIER_COLORS = {
+  bronze: '#CD7F32',
+  silver: '#C0C0C0',
+  gold: '#FFD700'
+};
+
+// Achievement state
+const achievementState = {
+  earned: [],           // List of earned achievement IDs
+  stats: {
+    tasksCompleted: 0,
+    errors: 0,
+    consecutiveTasks: 0,
+    prsReviewed: 0,
+    bugsFixed: 0,
+    pizzaParties: 0,
+    timeWorkedToday: 0,
+    fastestTaskTime: Infinity
+  },
+  recentEarnings: []    // Recently earned for animation
+};
+
+// Trophy sprite drawing
+function drawTrophy(x, y, size, tier, glowIntensity = 0) {
+  const tierColor = TIER_COLORS[tier] || TIER_COLORS.bronze;
+  
+  // Glow effect when earned recently
+  if (glowIntensity > 0) {
+    const gradient = ctx.createRadialGradient(x, y, 0, x, y, size * 2);
+    gradient.addColorStop(0, `${tierColor}${Math.floor(glowIntensity * 99).toString(16).padStart(2, '0')}`);
+    gradient.addColorStop(1, 'transparent');
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(x, y, size * 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  
+  // Trophy base
+  ctx.fillStyle = tierColor;
+  ctx.beginPath();
+  ctx.moveTo(x - size * 0.4, y + size * 0.3);
+  ctx.lineTo(x + size * 0.4, y + size * 0.3);
+  ctx.lineTo(x + size * 0.5, y + size * 0.5);
+  ctx.lineTo(x - size * 0.5, y + size * 0.5);
+  ctx.closePath();
+  ctx.fill();
+  
+  // Trophy cup
+  ctx.beginPath();
+  ctx.moveTo(x - size * 0.35, y + size * 0.3);
+  ctx.lineTo(x - size * 0.25, y - size * 0.2);
+  ctx.quadraticCurveTo(x, y - size * 0.5, x + size * 0.25, y - size * 0.2);
+  ctx.lineTo(x + size * 0.35, y + size * 0.3);
+  ctx.closePath();
+  ctx.fill();
+  
+  // Trophy handles
+  ctx.strokeStyle = tierColor;
+  ctx.lineWidth = size * 0.15;
+  ctx.beginPath();
+  ctx.arc(x - size * 0.35, y - size * 0.05, size * 0.2, Math.PI * 0.5, Math.PI * 1.5);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(x + size * 0.35, y - size * 0.05, size * 0.2, -Math.PI * 0.5, Math.PI * 0.5);
+  ctx.stroke();
+  
+  // Star on top
+  ctx.fillStyle = '#FFF';
+  drawStar(x, y - size * 0.35, size * 0.15, 5);
+}
+
+function drawStar(cx, cy, outerRadius, points) {
+  ctx.beginPath();
+  for (let i = 0; i < points * 2; i++) {
+    const radius = i % 2 === 0 ? outerRadius : outerRadius * 0.4;
+    const angle = (i * Math.PI) / points - Math.PI / 2;
+    const x = cx + Math.cos(angle) * radius;
+    const y = cy + Math.sin(angle) * radius;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fill();
+}
+
+// Draw trophies above desks for characters with achievements
+function drawAchievementTrophies() {
+  if (!window.CHARACTERS) return;
+  
+  const { x, y, w, h } = getOfficeBounds();
+  
+  // Character to desk position mapping
+  const deskPositions = {
+    'nova': { x: x + w * 0.73, y: y + h * 0.17 },
+    'zero1': { x: x + w * 0.74, y: y + h * 0.38 },
+    'zero2': { x: x + w * 0.82, y: y + h * 0.38 },
+    'zero3': { x: x + w * 0.90, y: y + h * 0.38 },
+    'delta': { x: x + w * 0.88, y: y + h * 0.10 },
+    'bestie': { x: x + w * 0.74, y: y + h * 0.60 },
+    'dexter': { x: x + w * 0.88, y: y + h * 0.60 }
+  };
+  
+  // Get current glow intensity based on recent earnings
+  const now = Date.now();
+  const glowDuration = 3000; // 3 seconds of glow
+  
+  achievementState.recentEarnings.forEach(earned => {
+    const age = now - earned.timestamp;
+    if (age < glowDuration) {
+      const intensity = 1 - (age / glowDuration);
+      
+      // Draw trophy above the character's desk
+      const charId = earned.characterId || 'nova';
+      const pos = deskPositions[charId];
+      if (pos) {
+        drawTrophy(pos.x, pos.y - 50 * scale, 12 * scale, earned.tier, intensity);
+      }
+    }
+  });
+}
+
+// Celebration animation state
+let celebrationParticles = [];
+
+function spawnCelebration(x, y) {
+  const colors = ['#FFD700', '#FF6B6B', '#4CAF50', '#2196F3', '#9C27B0', '#FF9800'];
+  
+  for (let i = 0; i < 30; i++) {
+    celebrationParticles.push({
+      x: x,
+      y: y,
+      vx: (Math.random() - 0.5) * 10,
+      vy: (Math.random() - 1) * 8,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      size: 3 + Math.random() * 4,
+      life: 1.0
+    });
+  }
+}
+
+function updateAndDrawCelebrations() {
+  // Update particles
+  celebrationParticles.forEach((p, i) => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.3; // gravity
+    p.life -= 0.02;
+    
+    if (p.life <= 0) {
+      celebrationParticles.splice(i, 1);
+    }
+  });
+  
+  // Draw particles
+  celebrationParticles.forEach(p => {
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
+  });
+  ctx.globalAlpha = 1;
+}
+
+// Check and award achievements
+function checkAchievements(characterId = 'nova') {
+  const stats = achievementState.stats;
+  const newEarnings = [];
+  
+  // First Task
+  if (!achievementState.earned.includes('first_task') && stats.tasksCompleted >= 1) {
+    newEarnings.push({ id: 'first_task', characterId });
+  }
+  
+  // Streak Master (5 consecutive tasks)
+  if (!achievementState.earned.includes('streak_master') && stats.consecutiveTasks >= 5) {
+    newEarnings.push({ id: 'streak_master', characterId });
+  }
+  
+  // Speed Demon (under 5 minutes = 300 seconds)
+  if (!achievementState.earned.includes('speed_demon') && stats.fastestTaskTime < 300) {
+    newEarnings.push({ id: 'speed_demon', characterId });
+  }
+  
+  // Night Owl (after 10 PM = hour >= 22)
+  const currentHour = getCurrentHour();
+  if (!achievementState.earned.includes('night_owl') && currentHour >= 22) {
+    newEarnings.push({ id: 'night_owl', characterId });
+  }
+  
+  // Early Bird (before 7 AM = hour < 7)
+  if (!achievementState.earned.includes('early_bird') && currentHour < 7) {
+    newEarnings.push({ id: 'early_bird', characterId });
+  }
+  
+  // Pizza Lover
+  if (!achievementState.earned.includes('pizza_lover') && stats.pizzaParties >= 10) {
+    newEarnings.push({ id: 'pizza_lover', characterId });
+  }
+  
+  // Code Reviewer
+  if (!achievementState.earned.includes('code_reviewer') && stats.prsReviewed >= 10) {
+    newEarnings.push({ id: 'code_reviewer', characterId });
+  }
+  
+  // Bug Hunter
+  if (!achievementState.earned.includes('bug_hunter') && stats.bugsFixed >= 5) {
+    newEarnings.push({ id: 'bug_hunter', characterId });
+  }
+  
+  // Award new achievements
+  newEarnings.forEach(earned => {
+    achievementState.earned.push(earned.id);
+    earned.timestamp = Date.now();
+    earned.tier = ACHIEVEMENT_CONFIG[earned.id].tier;
+    achievementState.recentEarnings.push(earned);
+    
+    // Console log sound effect placeholder
+    console.log(`🔔 Achievement earned: ${ACHIEVEMENT_CONFIG[earned.id].label}`);
+    
+    // Trigger celebration
+    const { x, y, w, h } = getOfficeBounds();
+    spawnCelebration(x + w * 0.5, y + h * 0.5);
+    
+    // Show notification
+    showAchievementNotification(earned.id);
+  });
+  
+  // Clean up old recent earnings (keep last 10)
+  if (achievementState.recentEarnings.length > 10) {
+    achievementState.recentEarnings = achievementState.recentEarnings.slice(-10);
+  }
+}
+
+// Achievement notification
+function showAchievementNotification(achievementId) {
+  const config = ACHIEVEMENT_CONFIG[achievementId];
+  if (!config) return;
+  
+  const notification = document.createElement('div');
+  notification.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    background: linear-gradient(135deg, ${config.color}22, ${config.color}44);
+    border: 2px solid ${config.color};
+    border-radius: 16px;
+    padding: 20px 40px;
+    color: #fff;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    text-align: center;
+    z-index: 2000;
+    box-shadow: 0 0 40px ${config.color}66;
+    transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  `;
+  
+  notification.innerHTML = `
+    <div style="font-size: 48px; margin-bottom: 10px;">🏆</div>
+    <div style="font-size: 14px; color: #aaa; text-transform: uppercase; letter-spacing: 2px;">Achievement Unlocked!</div>
+    <div style="font-size: 24px; font-weight: bold; color: ${config.color}; margin: 10px 0;">${config.label}</div>
+    <div style="font-size: 12px; color: #888;">${config.description}</div>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  // Animate in
+  setTimeout(() => {
+    notification.style.transform = 'translate(-50%, -50%) scale(1)';
+  }, 10);
+  
+  // Remove after 3 seconds
+  setTimeout(() => {
+    notification.style.transform = 'translate(-50%, -50%) scale(0)';
+    setTimeout(() => notification.remove(), 300);
+  }, 3000);
+}
+
+// Create Trophy Case Panel
+function createTrophyCasePanel() {
+  const panel = document.createElement('div');
+  panel.id = 'trophy-case-panel';
+  panel.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(30, 30, 50, 0.95);
+    border: 2px solid #6a6a8a;
+    border-radius: 12px;
+    padding: 16px;
+    color: #fff;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    width: 280px;
+    z-index: 900;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    display: none;
+  `;
+  
+  panel.innerHTML = `
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+      <h3 style="margin: 0; color: #FFD700; font-size: 16px;">🏆 Trophy Case</h3>
+      <button id="trophy-case-close" style="
+        background: none;
+        border: none;
+        color: #888;
+        font-size: 20px;
+        cursor: pointer;
+        padding: 0 4px;
+      ">×</button>
+    </div>
+    <div id="trophy-case-content" style="display: flex; flex-wrap: wrap; gap: 8px; max-height: 200px; overflow-y: auto;">
+      <span style="color: #666; font-size: 12px;">No achievements yet</span>
+    </div>
+  `;
+  
+  document.body.appendChild(panel);
+  
+  document.getElementById('trophy-case-close').addEventListener('click', () => {
+    panel.style.display = 'none';
+  });
+  
+  return panel;
+}
+
+function updateTrophyCase() {
+  const content = document.getElementById('trophy-case-content');
+  if (!content) return;
+  
+  if (achievementState.earned.length === 0) {
+    content.innerHTML = '<span style="color: #666; font-size: 12px;">No achievements yet</span>';
+    return;
+  }
+  
+  content.innerHTML = achievementState.earned.map(achId => {
+    const config = ACHIEVEMENT_CONFIG[achId];
+    if (!config) return '';
+    const tierColor = TIER_COLORS[config.tier];
+    return `
+      <div style="
+        background: ${config.color}22;
+        border: 1px solid ${config.color};
+        border-radius: 8px;
+        padding: 8px;
+        text-align: center;
+        min-width: 60px;
+      ">
+        <div style="font-size: 20px;">🏆</div>
+        <div style="font-size: 10px; color: ${config.color}; font-weight: bold;">${config.label}</div>
+        <div style="font-size: 9px; color: ${tierColor};">${config.tier.toUpperCase()}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function showTrophyCase() {
+  const panel = document.getElementById('trophy-case-panel');
+  if (!panel) return;
+  updateTrophyCase();
+  panel.style.display = 'block';
+}
+
+// Helper functions for external code to update stats
+window.awardTaskComplete = function(taskTimeSeconds) {
+  achievementState.stats.tasksCompleted++;
+  achievementState.stats.consecutiveTasks++;
+  if (taskTimeSeconds !== undefined && taskTimeSeconds < achievementState.stats.fastestTaskTime) {
+    achievementState.stats.fastestTaskTime = taskTimeSeconds;
+  }
+  checkAchievements();
+};
+
+window.awardError = function() {
+  achievementState.stats.errors++;
+  achievementState.stats.consecutiveTasks = 0;
+};
+
+window.awardBugFix = function() {
+  achievementState.stats.bugsFixed++;
+  checkAchievements();
+};
+
+window.awardPRReview = function() {
+  achievementState.stats.prsReviewed++;
+  checkAchievements();
+};
+
+window.awardPizzaParty = function() {
+  achievementState.stats.pizzaParties++;
+  checkAchievements();
+};
+
+window.getAchievementState = function() {
+  return achievementState;
+};
+
+// Initialize achievement UI
+let trophyCasePanel = null;
 
 // Create stats panel overlay element
 function createInfoOverlay() {
