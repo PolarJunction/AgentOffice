@@ -9,6 +9,394 @@ const OfficeEventTypes = {
   COFFEE_BREAK: 'coffee_break'
 };
 
+// ============================================================================
+// Visitor System - Phase 7
+// ============================================================================
+
+// Visitor types
+const VisitorTypes = {
+  CLIENT: 'client',
+  FRIEND: 'friend',
+  DELIVERY: 'delivery',
+  INTERVIEWER: 'interviewer'
+};
+
+// Visitor configuration
+const VISITOR_CONFIG = {
+  [VisitorTypes.CLIENT]: {
+    name: 'Client',
+    color: '#4488ff',
+    arrivalInterval: 30 * 60 * 1000,
+    arrivalIntervalMax: 60 * 60 * 1000,
+    behaviorDuration: 8000,
+    greeting: "Hello! I'm here for a meeting.",
+    destination: 'desk', // walks to a random desk
+    leavesWith: 'speech'
+  },
+  [VisitorTypes.FRIEND]: {
+    name: 'Friend',
+    color: '#ff88ff',
+    arrivalInterval: 45 * 60 * 1000,
+    arrivalIntervalMax: 90 * 60 * 1000,
+    behaviorDuration: 6000,
+    greeting: "Hey! Just stopping by!",
+    destination: 'lounge', // waves in lounge area
+    leavesWith: 'wave'
+  },
+  [VisitorTypes.DELIVERY]: {
+    name: 'Delivery',
+    color: '#ffaa44',
+    arrivalInterval: 20 * 60 * 1000,
+    arrivalIntervalMax: 40 * 60 * 1000,
+    behaviorDuration: 3000,
+    greeting: "Package delivery!",
+    destination: 'reception', // drops at reception
+    leavesWith: 'drop'
+  },
+  [VisitorTypes.INTERVIEWER]: {
+    name: 'Interviewer',
+    color: '#44ff88',
+    arrivalInterval: 60 * 60 * 1000,
+    arrivalIntervalMax: 90 * 60 * 1000,
+    behaviorDuration: 10000,
+    greeting: "Hi! I'm here for the interview.",
+    destination: 'meeting', // walks to meeting area
+    leavesWith: 'speech'
+  }
+};
+
+// Visitor waypoints
+const VisitorWaypoints = {
+  // Entrance (front door)
+  ENTRANCE: { x: 0.50, y: 0.95 },
+  
+  // Reception (where Bestie sits)
+  RECEPTION: { x: 0.22, y: 0.62 },
+  
+  // Lounge area
+  LOUNGE: { x: 0.15, y: 0.65 },
+  
+  // Meeting rooms
+  MEETING_1: { x: 0.74, y: 0.78 },
+  MEETING_2: { x: 0.88, y: 0.78 },
+  
+  // Random desk destinations
+  DESK_AREAS: [
+    { x: 0.15, y: 0.12 }, // Nova area
+    { x: 0.12, y: 0.40 }, // Zero-1
+    { x: 0.44, y: 0.40 }, // Zero-2
+    { x: 0.76, y: 0.40 }, // Zero-3
+    { x: 0.72, y: 0.12 }, // Delta
+    { x: 0.78, y: 0.62 }  // Dexter
+  ],
+  
+  // Exit
+  EXIT: { x: 0.50, y: 1.0 }
+};
+
+// Visitor state
+let currentVisitor = null;
+let visitorTimer = null;
+let visitorCount = 0;
+
+// Visitor speech bubble timeout
+let visitorGreetingTimeout = null;
+
+// Create a visitor
+function createVisitor(type) {
+  const config = VISITOR_CONFIG[type];
+  return {
+    id: `visitor_${Date.now()}`,
+    type: type,
+    name: config.name,
+    color: config.color,
+    offsetX: VisitorWaypoints.ENTRANCE.x,
+    offsetY: VisitorWaypoints.ENTRANCE.y,
+    state: 'entering', // entering, greeting, behaving, leaving
+    frame: 0,
+    visible: true,
+    greetingShown: false,
+    destination: null,
+    startTime: Date.now()
+  };
+}
+
+// Get random visitor type
+function getRandomVisitorType() {
+  const types = Object.values(VisitorTypes);
+  return types[Math.floor(Math.random() * types.length)];
+}
+
+// Get random desk destination
+function getRandomDeskDestination() {
+  const desks = VisitorWaypoints.DESK_AREAS;
+  return desks[Math.floor(Math.random() * desks.length)];
+}
+
+// Get greeting message for visitor type
+function getVisitorGreeting(type) {
+  return VISITOR_CONFIG[type]?.greeting || "Hello!";
+}
+
+// Show Bestie greeting speech bubble
+function showBestieGreeting(visitor) {
+  const bestie = window.CHARACTERS?.find(c => c.id === 'bestie');
+  if (!bestie || typeof speechBubbles === 'undefined') return;
+  
+  // Bestie greets the visitor
+  speechBubbles.push({
+    id: Date.now() + Math.random(),
+    characterId: 'bestie_greeting',
+    text: `Welcome! ${visitor.name}, right?`,
+    x: bestie.offsetX,
+    y: bestie.offsetY - 0.05,
+    createdAt: Date.now(),
+    duration: 3000,
+    opacity: 0,
+    state: 'appearing'
+  });
+}
+
+// Trigger visitor arrival
+function triggerVisitorArrival() {
+  if (currentVisitor || !currentEvent) return; // Don't interrupt other events
+  
+  const type = getRandomVisitorType();
+  const config = VISITOR_CONFIG[type];
+  
+  console.log(`👋 Visitor arriving: ${type}`);
+  
+  currentVisitor = createVisitor(type);
+  visitorCount++;
+  
+  // Set destination based on visitor type
+  switch (type) {
+    case VisitorTypes.CLIENT:
+      currentVisitor.destination = getRandomDeskDestination();
+      break;
+    case VisitorTypes.FRIEND:
+      currentVisitor.destination = VisitorWaypoints.LOUNGE;
+      break;
+    case VisitorTypes.DELIVERY:
+      currentVisitor.destination = VisitorWaypoints.RECEPTION;
+      break;
+    case VisitorTypes.INTERVIEWER:
+      currentVisitor.destination = Math.random() > 0.5 ? VisitorWaypoints.MEETING_1 : VisitorWaypoints.MEETING_2;
+      break;
+  }
+  
+  // Schedule greeting after arrival at reception
+  visitorGreetingTimeout = setTimeout(() => {
+    if (currentVisitor) {
+      currentVisitor.state = 'greeting';
+      currentVisitor.greetingShown = true;
+      
+      // Show visitor's greeting at reception
+      if (typeof speechBubbles !== 'undefined') {
+        speechBubbles.push({
+          id: Date.now() + Math.random(),
+          characterId: currentVisitor.id,
+          text: getVisitorGreeting(currentVisitor.type),
+          x: VisitorWaypoints.RECEPTION.x,
+          y: VisitorWaypoints.RECEPTION.y - 0.05,
+          createdAt: Date.now(),
+          duration: 3000,
+          opacity: 0,
+          state: 'appearing'
+        });
+      }
+      
+      // Bestie reacts with greeting
+      showBestieGreeting(currentVisitor);
+      
+      // After greeting, visitor goes to their destination
+      setTimeout(() => {
+        if (currentVisitor) {
+          currentVisitor.state = 'behaving';
+          moveVisitorToDestination(currentVisitor, currentVisitor.destination, () => {
+            // Arrived at destination - wait for behavior duration
+            setTimeout(() => {
+              if (currentVisitor) {
+                currentVisitor.state = 'leaving';
+                moveVisitorToDestination(currentVisitor, VisitorWaypoints.EXIT, () => {
+                  endVisitorVisit();
+                });
+              }
+            }, config.behaviorDuration);
+          });
+        }
+      }, 2500);
+    }
+  }, 1500);
+}
+
+// Move visitor to destination
+function moveVisitorToTarget(visitor, targetX, targetY, callback) {
+  visitor.state = 'walking';
+  visitor.targetX = targetX;
+  visitor.targetY = targetY;
+  
+  visitor.movingToTarget = {
+    targetX,
+    targetY,
+    callback,
+    startX: visitor.offsetX,
+    startY: visitor.offsetY,
+    startTime: Date.now(),
+    duration: 2500 // 2.5 seconds to reach destination
+  };
+}
+
+// Alias for compatibility
+function moveVisitorToDestination(visitor, destination, callback) {
+  moveVisitorToTarget(visitor, destination.x, destination.y, callback);
+}
+
+// Update visitor movement
+function updateVisitorMovement(visitor, deltaTime) {
+  if (!visitor?.movingToTarget) return;
+  
+  const move = visitor.movingToTarget;
+  const elapsed = Date.now() - move.startTime;
+  const progress = Math.min(elapsed / move.duration, 1);
+  
+  // Ease out cubic
+  const eased = 1 - Math.pow(1 - progress, 3);
+  
+  visitor.offsetX = move.startX + (move.targetX - move.startX) * eased;
+  visitor.offsetY = move.startY + (move.targetY - move.startY) * eased;
+  
+  if (progress >= 1) {
+    delete visitor.movingToTarget;
+    if (move.callback) {
+      move.callback();
+    }
+  }
+}
+
+// End visitor visit
+function endVisitorVisit() {
+  if (!currentVisitor) return;
+  
+  console.log(`👋 Visitor left: ${currentVisitor.type}`);
+  
+  // Clear any pending greeting timeout
+  if (visitorGreetingTimeout) {
+    clearTimeout(visitorGreetingTimeout);
+    visitorGreetingTimeout = null;
+  }
+  
+  // Remove visitor's speech bubbles
+  if (typeof speechBubbles !== 'undefined') {
+    for (let i = speechBubbles.length - 1; i >= 0; i--) {
+      const bubble = speechBubbles[i];
+      if (bubble.characterId === currentVisitor.id || bubble.characterId === 'bestie_greeting') {
+        speechBubbles.splice(i, 1);
+      }
+    }
+  }
+  
+  // Add timeline event for visitor
+  if (window.addTimelineEvent) {
+    window.addTimelineEvent('Bestie', 'visitor', currentVisitor.name);
+  }
+  
+  // Hide visitor
+  currentVisitor.visible = false;
+  currentVisitor = null;
+  
+  // Schedule next visitor
+  scheduleNextVisitor();
+}
+
+// Schedule next visitor
+function scheduleNextVisitor() {
+  const type = getRandomVisitorType();
+  const config = VISITOR_CONFIG[type];
+  
+  const minTime = config.arrivalInterval;
+  const maxTime = config.arrivalIntervalMax;
+  const randomTime = Math.random() * (maxTime - minTime) + minTime;
+  
+  console.log(`📅 Next visitor scheduled in ${Math.round(randomTime / 60000)} minutes: ${type}`);
+  
+  visitorTimer = setTimeout(() => {
+    triggerVisitorArrival();
+  }, randomTime);
+}
+
+// Update visitor (called from game loop)
+function updateVisitors(deltaTime) {
+  if (currentVisitor && currentVisitor.visible) {
+    updateVisitorMovement(currentVisitor, deltaTime);
+    
+    // Animate frame
+    currentVisitor.frameTime = (currentVisitor.frameTime || 0) + deltaTime;
+    if (currentVisitor.frameTime > 400) {
+      currentVisitor.frame = (currentVisitor.frame + 1) % 3;
+      currentVisitor.frameTime = 0;
+    }
+  }
+}
+
+// Draw visitor
+function drawVisitor() {
+  if (!currentVisitor || !currentVisitor.visible) return;
+  
+  const { x, y, w, h, scale } = getOfficeBounds();
+  const visitor = currentVisitor;
+  
+  const charX = x + w * visitor.offsetX;
+  const charY = y + h * visitor.offsetY;
+  const spriteW = 28 * scale;
+  const spriteH = 36 * scale;
+  
+  // Walking animation offset
+  const walkOffset = visitor.state === 'walking' ? [0, -2, 0][visitor.frame] * scale : 0;
+  
+  // Body
+  ctx.fillStyle = visitor.color;
+  ctx.fillRect(charX - spriteW / 2, charY - spriteH / 2 + walkOffset, spriteW, spriteH);
+  
+  // Border
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 2 * scale;
+  ctx.strokeRect(charX - spriteW / 2, charY - spriteH / 2 + walkOffset, spriteW, spriteH);
+  
+  // Visitor type indicator
+  const typeIcon = {
+    [VisitorTypes.CLIENT]: '💼',
+    [VisitorTypes.FRIEND]: '👋',
+    [VisitorTypes.DELIVERY]: '📦',
+    [VisitorTypes.INTERVIEWER]: '📋'
+  }[visitor.type] || '👤';
+  
+  // Small icon above head
+  ctx.font = `${12 * scale}px Arial`;
+  ctx.textAlign = 'center';
+  ctx.fillText(typeIcon, charX, charY - spriteH / 2 - 6 * scale + walkOffset);
+  
+  // Name
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `bold ${9 * scale}px Arial`;
+  ctx.fillText(visitor.name, charX, charY - spriteH / 2 - 16 * scale + walkOffset);
+}
+
+// Get visitor count for stats
+function getVisitorCount() {
+  return visitorCount;
+}
+
+// Export for use
+window.VisitorTypes = VisitorTypes;
+window.updateVisitors = updateVisitors;
+window.drawVisitor = drawVisitor;
+window.getVisitorCount = getVisitorCount;
+
+// ============================================================================
+// End Visitor System
+// ============================================================================
+
 // Event state
 let currentEvent = null;
 let eventTimer = null;
@@ -548,6 +936,10 @@ function initializeOfficeEvents() {
   
   // Wait a bit before first event
   setTimeout(scheduleNextEvent, 60000); // First event in 1 minute
+  
+  // Initialize visitor system (Phase 7)
+  // Visitors come every 30-60 minutes (random)
+  setTimeout(scheduleNextVisitor, 90000); // First visitor in 1.5 minutes
 }
 
 // Export for use in app.js

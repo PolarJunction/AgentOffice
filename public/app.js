@@ -778,6 +778,14 @@ function gameLoop(timestamp) {
     window.drawOfficeEvents();
   }
   
+  // Update and draw visitors (Phase 7)
+  if (window.updateVisitors) {
+    window.updateVisitors(deltaTime);
+  }
+  if (window.drawVisitor) {
+    window.drawVisitor();
+  }
+  
   // Update and draw mood indicators (Phase 5)
   if (window.updateMoods) {
     window.updateMoods(deltaTime);
