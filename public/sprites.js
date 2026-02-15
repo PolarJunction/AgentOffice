@@ -657,27 +657,46 @@ function getFrameOffset(character) {
 function drawCharacter(character, deltaTime, bounds = null) {
   const officeBounds = bounds || getOfficeBounds();
   const { x, y, w, h, scale } = officeBounds;
-  
+
   // Update animation
   updateCharacterFrame(character, deltaTime);
   updateCharacterPosition(character, deltaTime);
-  
+
   // Calculate character position based on their current offset
   const charX = x + w * character.offsetX;
   const charY = y + h * character.offsetY;
-  
+
+  // Get frame for animation
+  const frame = character.frame || 0;
+
+  // Use tile-renderer pixel art if available, otherwise fallback to simple rendering
+  if (window.drawCharacterSprite) {
+    window.drawCharacterSprite(ctx, character.id, charX, charY, scale, frame);
+
+    // Draw name label above character
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `bold ${10 * scale}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    const frameOffset = getFrameOffset(character);
+    ctx.fillText(character.name, charX, charY - SPRITE_HEIGHT * scale / 2 - 4 * scale + frameOffset);
+    ctx.textBaseline = 'alphabetic';
+    return;
+  }
+
+  // Fallback: simple square rendering
   // Scale sprite size
   const spriteW = SPRITE_WIDTH * scale;
   const spriteH = SPRITE_HEIGHT * scale;
-  
+
   // Get state-based color and offset
   const stateColor = getStateColor(character);
   const frameOffset = getFrameOffset(character);
-  
+
   // Draw character body with state-based color
   ctx.fillStyle = stateColor;
   ctx.fillRect(charX - spriteW / 2, charY - spriteH / 2 + frameOffset, spriteW, spriteH);
-  
+
   // Draw character border
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = 2 * scale;
