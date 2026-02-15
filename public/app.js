@@ -15,6 +15,9 @@ let whiteboardDiagrams = [
 let currentWhiteboardDiagram = 0;
 let whiteboardProgress = 0;
 
+// Water cooler bubbles (declared early to avoid TDZ)
+let waterCoolerBubbles = [];
+
 // Office dimensions and layout
 let scale = 1;
 window.scale = scale;
@@ -1118,9 +1121,6 @@ let clockTime = new Date(); // Real time clock
 
 // Coffee steam particles
 const coffeeSteamParticles = [];
-
-// Water cooler bubbles
-const waterCoolerBubbles = [];
 
 // Draw ambient animations (clock, plants swaying, light flicker)
 function drawAmbientAnimations(timestamp) {

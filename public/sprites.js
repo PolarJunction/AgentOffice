@@ -3,8 +3,9 @@
 // Phase 2: Character state machine for animations
 
 // Get office layout constants from app.js (global scope)
-const MIN_WIDTH = window.MIN_WIDTH || 1200;
-const MIN_HEIGHT = window.MIN_HEIGHT || 800;
+// Use var to avoid redeclaring const from app.js
+var MIN_WIDTH = window.MIN_WIDTH || 1200;
+var MIN_HEIGHT = window.MIN_HEIGHT || 800;
 // Use Object.defineProperty to avoid redeclaring 'scale' from app.js
 if (typeof scale === 'undefined') {
   Object.defineProperty(window, 'scale', {
