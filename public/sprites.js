@@ -614,6 +614,185 @@ function drawCharacters(deltaTime = 16) {
   });
 }
 
+// ============================================================================
+// Visual Effects System - Phase 4
+// ============================================================================
+
+// Typing particles for working agents
+class TypingParticle {
+  constructor(x, y, color) {
+    this.x = x;
+    this.y = y;
+    this.color = color;
+    this.vx = (Math.random() - 0.5) * 0.002;
+    this.vy = -Math.random() * 0.003 - 0.001;
+    this.life = 1.0;
+    this.decay = Math.random() * 0.01 + 0.008;
+    this.size = Math.random() * 3 + 2;
+  }
+
+  update(deltaTime) {
+    this.x += this.vx * deltaTime * 60;
+    this.y += this.vy * deltaTime * 60;
+    this.life -= this.decay;
+    return this.life > 0;
+  }
+
+  draw(ctx, scale) {
+    ctx.globalAlpha = this.life * 0.8;
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size * scale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+}
+
+// Store particles per character
+const characterParticles = {};
+
+// Spawn typing particles for a working character
+function spawnTypingParticles(character) {
+  if (character.state !== CharacterStates.WORKING) return;
+  
+  // Initialize particle array for this character
+  if (!characterParticles[character.id]) {
+    characterParticles[character.id] = [];
+  }
+  
+  // Spawn 1-2 particles per frame with low probability
+  if (Math.random() < 0.3) {
+    const { x, y, w, h } = getOfficeBounds();
+    // Spawn near the character's position (at their desk)
+    const charX = x + w * character.deskX;
+    const charY = y + h * character.deskY;
+    
+    const particle = new TypingParticle(
+      charX + (Math.random() - 0.5) * 20 * scale,
+      charY - 15 * scale,
+      character.baseColor
+    );
+    characterParticles[character.id].push(particle);
+  }
+}
+
+// Update and draw typing particles
+function updateTypingParticles() {
+  Object.keys(characterParticles).forEach(charId => {
+    const particles = characterParticles[charId];
+    
+    // Update particles
+    for (let i = particles.length - 1; i >= 0; i--) {
+      if (!particles[i].update(16)) {
+        particles.splice(i, 1);
+      }
+    }
+  });
+}
+
+function drawTypingParticles() {
+  Object.values(characterParticles).forEach(particles => {
+    particles.forEach(particle => {
+      particle.draw(ctx, scale);
+    });
+  });
+}
+
+// Monitor glow effect for working agents
+function drawMonitorGlow(character) {
+  if (character.state !== CharacterStates.WORKING) return;
+  
+  const { x, y, w, h } = getOfficeBounds();
+  const charX = x + w * character.deskX;
+  const charY = y + h * character.deskY;
+  
+  // Draw glow around monitor position
+  const glowX = charX - 15 * scale;
+  const glowY = charY - 10 * scale;
+  const glowW = 40 * scale;
+  const glowH = 25 * scale;
+  
+  // Create gradient for glow effect
+  const gradient = ctx.createRadialGradient(
+    glowX + glowW / 2, glowY + glowH / 2, 0,
+    glowX + glowW / 2, glowY + glowH / 2, glowW
+  );
+  
+  const glowColor = character.baseColor;
+  gradient.addColorStop(0, glowColor.replace(')', ', 0.4)').replace('rgb', 'rgba'));
+  gradient.addColorStop(0.5, glowColor.replace(')', ', 0.2)').replace('rgb', 'rgba'));
+  gradient.addColorStop(1, 'transparent');
+  
+  ctx.fillStyle = gradient;
+  ctx.fillRect(glowX - glowW / 2, glowY - glowH / 2, glowW * 2, glowH * 2);
+}
+
+// ============================================================================
+// Coffee Steam Effect - Kitchen
+// ============================================================================
+
+class SteamParticle {
+  constructor(x, y) {
+    this.x = x;
+    this.baseX = x;
+    this.y = y;
+    this.startY = y;
+    this.vx = (Math.random() - 0.5) * 0.3;
+    this.vy = -Math.random() * 0.8 - 0.3;
+    this.life = 0;
+    this.maxLife = Math.random() * 40 + 40;
+    this.size = Math.random() * 8 + 6;
+  }
+
+  update(deltaTime) {
+    this.x += this.vx * deltaTime * 0.1;
+    this.y += this.vy * deltaTime * 0.1;
+    this.life++;
+    this.size += 0.05 * deltaTime;
+    return this.life < this.maxLife;
+  }
+
+  draw(ctx, scale) {
+    const alpha = Math.sin((this.life / this.maxLife) * Math.PI) * 0.4;
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size * scale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+}
+
+let steamParticles = [];
+let lastSteamSpawn = 0;
+
+function updateCoffeeSteam(timestamp) {
+  // Spawn new steam particles every 200ms
+  if (timestamp - lastSteamSpawn > 200) {
+    // Coffee machine position (from app.js - kitchen area)
+    const { x, y, w, h } = getOfficeBounds();
+    const coffeeX = x + w * 0.08; // Kitchen coffee machine position
+    const coffeeY = y + h * 0.15;
+    
+    steamParticles.push(new SteamParticle(coffeeX, coffeeY));
+    steamParticles.push(new SteamParticle(coffeeX + 10 * scale, coffeeY - 5 * scale));
+    lastSteamSpawn = timestamp;
+  }
+  
+  // Update existing particles
+  for (let i = steamParticles.length - 1; i >= 0; i--) {
+    if (!steamParticles[i].update(16)) {
+      steamParticles.splice(i, 1);
+    }
+  }
+}
+
+function drawCoffeeSteam() {
+  steamParticles.forEach(particle => {
+    particle.draw(ctx, scale);
+  });
+}
+
 // Export for use in app.js
 window.CHARACTERS = CHARACTERS;
 window.CharacterStates = CharacterStates;
@@ -624,3 +803,9 @@ window.drawCharacters = drawCharacters;
 window.setCharacterState = setCharacterState;
 window.getPointOnPath = getPointOnPath;
 window.getPathLength = getPathLength;
+window.spawnTypingParticles = spawnTypingParticles;
+window.updateTypingParticles = updateTypingParticles;
+window.drawTypingParticles = drawTypingParticles;
+window.drawMonitorGlow = drawMonitorGlow;
+window.updateCoffeeSteam = updateCoffeeSteam;
+window.drawCoffeeSteam = drawCoffeeSteam;
