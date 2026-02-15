@@ -401,10 +401,9 @@ function resizeCanvas() {
   canvas.style.width = window.innerWidth + 'px';
   canvas.style.height = window.innerHeight + 'px';
 
-  ctx.scale(dpr, dpr);
-
-  // Calculate scale based on window size
-  scale = Math.min(canvas.width / MIN_WIDTH / dpr, canvas.height / MIN_HEIGHT / dpr);
+  // Don't scale context - draw in CSS pixel coordinates
+  // scale = Math.min(canvas.width / MIN_WIDTH / dpr, canvas.height / MIN_HEIGHT / dpr);
+  scale = Math.min(window.innerWidth / MIN_WIDTH, window.innerHeight / MIN_HEIGHT);
 
   // Enforce min/max scale constraints
   const MIN_SCALE = 0.4;
@@ -413,7 +412,7 @@ function resizeCanvas() {
 
   window.scale = scale;
 
-  console.log('resizeCanvas:', { width: canvas.width, height: canvas.height, dpr, scale, MIN_WIDTH, MIN_HEIGHT });
+  console.log('resizeCanvas:', { width: canvas.width, height: canvas.height, dpr, scale, MIN_WIDTH, MIN_HEIGHT, innerWidth: window.innerWidth, innerHeight: window.innerHeight });
   
   // Update scale indicator if exists
   updateScaleIndicator();
@@ -458,14 +457,12 @@ window.addEventListener('resize', resizeCanvas);
 // Draw the office layout
 function draw(timestamp = 0) {
   animationTimestamp = timestamp;
-  const cx = canvas.width / 2;
-  const cy = canvas.height / 2;
+  const cx = window.innerWidth / 2;
+  const cy = window.innerHeight / 2;
   const w = MIN_WIDTH * scale;
   const h = MIN_HEIGHT * scale;
   const x = cx - w / 2;
   const y = cy - h / 2;
-
-  console.log('draw:', { cx, cy, w, h, x, y, scale });
   
   // Clear canvas
   ctx.fillStyle = COLORS.floor;
