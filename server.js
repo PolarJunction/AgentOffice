@@ -85,13 +85,10 @@ process.on('SIGINT', () => {
 });
 
 app.listen(PORT, () => {
-  console.log(`AgentOffice server running on port ${PORT}`);
-  console.log(`Gateway log parser active, monitoring: ${LOG_PATH}`);
-
-  // Check if log file exists and warn if not
+  // Check if log file exists, if not try to find an alternative
+  let actualLogPath = LOG_PATH;
   if (!fs.existsSync(LOG_PATH)) {
     console.warn(`WARNING: Log file not found at ${LOG_PATH}`);
-    console.warn('Agent status updates will show agents as idle until gateway logs appear');
 
     // Try to find any recent log file
     const logDir = path.dirname(LOG_PATH);
@@ -101,8 +98,18 @@ app.listen(PORT, () => {
         .sort()
         .reverse();
       if (files.length > 0) {
-        console.log(`Found alternative log file: ${path.join(logDir, files[0])}`);
+        actualLogPath = path.join(logDir, files[0]);
+        console.log(`Using alternative log file: ${actualLogPath}`);
+        // Update the log parser to use this path
+        logParser.updateLogPath(actualLogPath);
+      } else {
+        console.warn('Agent status updates will show agents as idle until gateway logs appear');
       }
+    } else {
+      console.warn('Agent status updates will show agents as idle until gateway logs appear');
     }
   }
+
+  console.log(`AgentOffice server running on port ${PORT}`);
+  console.log(`Gateway log parser active, monitoring: ${actualLogPath}`);
 });

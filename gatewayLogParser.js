@@ -97,7 +97,16 @@ class GatewayLogParser {
       this.timer = null;
     }
   }
-  
+
+  /**
+   * Update log path and reset position to start reading from beginning
+   */
+  updateLogPath(newPath) {
+    this.logPath = newPath;
+    this.position = 0;
+    console.log(`Log parser updated to monitor: ${newPath}`);
+  }
+
   /**
    * Poll the log file for new entries
    */
