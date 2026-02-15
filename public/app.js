@@ -188,6 +188,161 @@ function getTimeDisplay() {
 // End Day/Night Cycle System
 // ============================================================================
 
+// ============================================================================
+// Agent Speech Bubbles - Phase 5
+// ============================================================================
+
+// Speech bubble data structure
+const speechBubbles = [];
+
+// Agent quips by character name
+const AGENT_QUIPS = {
+  'Nova': {
+    start: ["I have a plan...", "Let me design this...", "Got it!", "Starting now!"],
+    complete: ["Excellent progress!", "Done!", "Perfect!", "All set!"]
+  },
+  'Zero': {
+    start: ["Time to code!", "One sec...", "On it!", "Let's build!"],
+    complete: ["Almost done!", "Done!", "Code complete!", "Works!"]
+  },
+  'Delta': {
+    start: ["Reviewing...", "Let me check...", "Analyzing...", "Looking into it"],
+    complete: ["LGTM!", "Looks good!", "Approved!", "Found no issues!"]
+  },
+  'Bestie': {
+    start: ["Got it!", "On it!", "How can I help?", "Right away!"],
+    complete: ["All done!", "Complete!", "Handled!", "Ready!"]
+  },
+  'Dexter': {
+    start: ["Testing...", "Interesting...", "Let me try that...", "Debug time!"],
+    complete: ["Interesting...", "Tests pass!", "Works!", "Fixed it!"]
+  }
+};
+
+// Get random quip based on agent name and action type
+function getQuip(agentName, actionType) {
+  const quips = AGENT_QUIPS[agentName] || AGENT_QUIPS['Zero'];
+  const quipList = quips[actionType] || quips.start;
+  return quipList[Math.floor(Math.random() * quipList.length)];
+}
+
+// Show speech bubble for an agent
+function showSpeechBubble(characterId, agentName, actionType, taskName = null) {
+  const character = window.CHARACTERS?.find(c => c.id === characterId);
+  if (!character) return;
+  
+  const text = taskName 
+    ? `${getQuip(agentName, actionType)}\n${taskName}`
+    : getQuip(agentName, actionType);
+  
+  speechBubbles.push({
+    id: Date.now() + Math.random(),
+    characterId: characterId,
+    text: text,
+    x: character.offsetX,
+    y: character.offsetY,
+    createdAt: Date.now(),
+    duration: 3500, // 3.5 seconds
+    opacity: 0,
+    state: 'appearing' // appearing, visible, disappearing
+  });
+}
+
+// Update and draw speech bubbles
+function updateAndDrawSpeechBubbles(timestamp) {
+  const now = Date.now();
+  
+  // Update bubble states
+  speechBubbles.forEach((bubble, index) => {
+    const age = now - bubble.createdAt;
+    
+    // Update opacity based on age
+    if (age < 300) {
+      bubble.state = 'appearing';
+      bubble.opacity = age / 300;
+    } else if (age < bubble.duration - 300) {
+      bubble.state = 'visible';
+      bubble.opacity = 1;
+    } else if (age < bubble.duration) {
+      bubble.state = 'disappearing';
+      bubble.opacity = 1 - (age - (bubble.duration - 300)) / 300;
+    } else {
+      bubble.opacity = 0;
+    }
+  });
+  
+  // Remove expired bubbles
+  while (speechBubbles.length > 0 && (now - speechBubbles[0].createdAt) > speechBubbles[0].duration) {
+    speechBubbles.shift();
+  }
+  
+  // Draw active bubbles
+  speechBubbles.forEach(bubble => {
+    if (bubble.opacity <= 0) return;
+    
+    const canvas = document.getElementById('office');
+    const rect = canvas.getBoundingClientRect();
+    const bubbleX = bubble.x * rect.width;
+    const bubbleY = bubble.y * rect.height - 60; // Position above character
+    
+    // Speech bubble background
+    ctx.save();
+    ctx.globalAlpha = bubble.opacity * 0.95;
+    
+    // Bubble body
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#6a6a8a';
+    ctx.lineWidth = 2;
+    
+    // Measure text for bubble size
+    const lines = bubble.text.split('\n');
+    ctx.font = '13px Arial';
+    const maxWidth = Math.max(...lines.map(line => ctx.measureText(line).width));
+    const bubbleWidth = maxWidth + 20;
+    const bubbleHeight = lines.length * 18 + 16;
+    const bubbleBX = bubbleX - bubbleWidth / 2;
+    const bubbleBY = bubbleY - bubbleHeight;
+    
+    // Draw rounded rectangle
+    const radius = 8;
+    ctx.beginPath();
+    ctx.moveTo(bubbleBX + radius, bubbleBY);
+    ctx.lineTo(bubbleBX + bubbleWidth - radius, bubbleBY);
+    ctx.quadraticCurveTo(bubbleBX + bubbleWidth, bubbleBY, bubbleBX + bubbleWidth, bubbleBY + radius);
+    ctx.lineTo(bubbleBX + bubbleWidth, bubbleBY + bubbleHeight - radius);
+    ctx.quadraticCurveTo(bubbleBX + bubbleWidth, bubbleBY + bubbleHeight, bubbleBX + bubbleWidth - radius, bubbleBY + bubbleHeight);
+    ctx.lineTo(bubbleBX + radius, bubbleBY + bubbleHeight);
+    ctx.quadraticCurveTo(bubbleBX, bubbleBY + bubbleHeight, bubbleBX, bubbleBY + bubbleHeight - radius);
+    ctx.lineTo(bubbleBX, bubbleBY + radius);
+    ctx.quadraticCurveTo(bubbleBX, bubbleBY, bubbleBX + radius, bubbleBY);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    
+    // Draw pointer triangle
+    ctx.beginPath();
+    ctx.moveTo(bubbleX - 8, bubbleBY + bubbleHeight);
+    ctx.lineTo(bubbleX, bubbleBY + bubbleHeight + 10);
+    ctx.lineTo(bubbleX + 8, bubbleBY + bubbleHeight);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    
+    // Draw text
+    ctx.fillStyle = '#333333';
+    ctx.textAlign = 'center';
+    lines.forEach((line, i) => {
+      ctx.fillText(line, bubbleX, bubbleBY + 18 + i * 18);
+    });
+    
+    ctx.restore();
+  });
+}
+
+// ============================================================================
+// End Speech Bubbles
+// ============================================================================
+
 // Color palette - cozy office colors (base colors, will be modified by lighting)
 const COLORS = {
   floor: '#2d2d44',
@@ -603,6 +758,9 @@ function gameLoop(timestamp) {
     window.drawTypingParticles();
   }
   
+  // Update and draw speech bubbles
+  updateAndDrawSpeechBubbles(timestamp);
+  
   // Note: Demo mode disabled - states now driven by live API polling
   // To re-enable demo: uncomment cycleCharacterStates() call below
   // stateCycleTimer += deltaTime;
@@ -734,9 +892,13 @@ function processAgentStatus(agents) {
           currentState !== states.WALKING_TO_DESK) {
         // Agent started working - walk to desk
         window.setCharacterState(characterId, states.WALKING_TO_DESK);
+        // Show speech bubble for starting task
+        showSpeechBubble(characterId, character.name, 'start', agent.currentTask);
       } else if (agent.state === 'idle' && currentState === states.WORKING) {
         // Agent stopped working - walk back to lounge
         window.setCharacterState(characterId, states.WALKING_TO_LOUNGE);
+        // Show speech bubble for completing task
+        showSpeechBubble(characterId, character.name, 'complete');
       }
     }
     
