@@ -2453,18 +2453,7 @@ if (window.initializeOfficeEvents) {
   window.initializeOfficeEvents();
 }
 
-// Initialize timeline (Phase 6)
-setupTimelineToggle();
-renderTimeline();
-
-// Initialize productivity dashboard (Phase 8)
-setupProductivityDashboard();
-
-// ============================================================================
-// Productivity Dashboard (Phase 8)
-// ============================================================================
-
-// Productivity state
+// Productivity state (declared early to avoid TDZ)
 const productivityState = {
   dailyTasksCompleted: 0,
   weeklyLeaderboard: [],
@@ -2472,7 +2461,7 @@ const productivityState = {
   totalAgents: 8
 };
 
-// Update productivity stats (moved before setupProductivityDashboard to fix TDZ)
+// Update productivity stats (declared early to avoid TDZ)
 window.updateProductivityStats = function() {
   // Get task count from achievement state
   const tasksCompleted = achievementState?.stats?.tasksCompleted || 0;
@@ -2521,6 +2510,13 @@ window.updateProductivityStats = function() {
   // Update leaderboard
   updateLeaderboard();
 };
+
+// Initialize timeline (Phase 6)
+setupTimelineToggle();
+renderTimeline();
+
+// Initialize productivity dashboard (Phase 8)
+setupProductivityDashboard();
 
 // Initialize productivity dashboard
 function setupProductivityDashboard() {
