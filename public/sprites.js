@@ -334,6 +334,10 @@ const FRAME_DURATION = 500;
 
 // Get office layout boundaries (must match app.js)
 function getOfficeBounds() {
+  // Guard: ensure canvas is initialized before use
+  if (!canvas || !canvas.width || !canvas.height) {
+    return { cx: 0, cy: 0, w: MIN_WIDTH, h: MIN_HEIGHT, x: 0, y: 0, scale: 1 };
+  }
   const cx = canvas.width / 2;
   const cy = canvas.height / 2;
   const w = MIN_WIDTH * scale;
