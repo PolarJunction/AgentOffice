@@ -31,17 +31,62 @@ const COLORS = {
   wallOutline: '#6a6a8a'
 };
 
-// Set canvas size to full window
+// Set canvas size to full window with HiDPI support
 function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  const dpr = window.devicePixelRatio || 1;
+  
+  canvas.width = window.innerWidth * dpr;
+  canvas.height = window.innerHeight * dpr;
+  canvas.style.width = window.innerWidth + 'px';
+  canvas.style.height = window.innerHeight + 'px';
+  
+  ctx.scale(dpr, dpr);
   
   // Calculate scale based on window size
-  scale = Math.min(canvas.width / MIN_WIDTH, canvas.height / MIN_HEIGHT);
-  scale = Math.max(scale, 0.5);
+  scale = Math.min(canvas.width / MIN_WIDTH / dpr, canvas.height / MIN_HEIGHT / dpr);
+  
+  // Enforce min/max scale constraints
+  const MIN_SCALE = 0.4;
+  const MAX_SCALE = 1.5;
+  scale = Math.max(MIN_SCALE, Math.min(scale, MAX_SCALE));
+  
   window.scale = scale;
   
+  // Update scale indicator if exists
+  updateScaleIndicator();
+  
   draw();
+}
+
+// Scale indicator for mobile visibility
+function updateScaleIndicator() {
+  let indicator = document.getElementById('scale-indicator');
+  if (!indicator) {
+    indicator = document.createElement('div');
+    indicator.id = 'scale-indicator';
+    indicator.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(30, 30, 50, 0.9);
+      color: #aaa;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+      z-index: 100;
+      display: none;
+    `;
+    document.body.appendChild(indicator);
+  }
+  
+  // Show indicator only on small screens
+  if (window.innerWidth < 768 || window.innerHeight < 600) {
+    indicator.textContent = `Scale: ${Math.round(scale * 100)}%`;
+    indicator.style.display = 'block';
+  } else {
+    indicator.style.display = 'none';
+  }
 }
 
 resizeCanvas();
