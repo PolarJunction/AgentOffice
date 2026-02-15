@@ -401,12 +401,15 @@ function resizeCanvas() {
   canvas.style.width = window.innerWidth + 'px';
   canvas.style.height = window.innerHeight + 'px';
 
-  // Calculate scale based on window size
-  scale = Math.min(window.innerWidth / MIN_WIDTH, window.innerHeight / MIN_HEIGHT);
+  // Calculate scale - fit to window with some padding
+  const padding = 40;
+  const availableWidth = window.innerWidth - padding * 2;
+  const availableHeight = window.innerHeight - padding * 2;
+  scale = Math.min(availableWidth / MIN_WIDTH, availableHeight / MIN_HEIGHT);
 
-  // Enforce min/max scale constraints - use lower min to allow bigger rendering
-  const MIN_SCALE = 0.6;
-  const MAX_SCALE = 2.0;
+  // Allow scale to go below 1 if window is small
+  const MIN_SCALE = 0.3;
+  const MAX_SCALE = 2.5;
   scale = Math.max(MIN_SCALE, Math.min(scale, MAX_SCALE));
 
   window.scale = scale;
