@@ -1,29 +1,34 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>AgentOffice</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect fill='%234a4a6a' width='16' height='16'/><rect fill='%233a3a5a' x='2' y='4' width='12' height='10'/><rect fill='%236a6a8a' x='4' y='2' width='8' height='3'/><rect fill='%2340c070' x='3' y='7' width='3' height='3'/><rect fill='%23f0c040' x='7' y='7' width='3' height='3'/><rect fill='%236a8afa' x='11' y='7' width='3' height='3'/></svg>">
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect fill='%234a4a6a' width='16' height='16'/><rect fill='%233a3a5a' x='2' y='4' width='12' height='10'/><rect fill='%236a6a8a' x='4' y='2' width='8' height='3'/><rect fill='%2340c070' x='3' y='7' width='3' height='3'/><rect fill='%23f0c040' x='7' y='7' width='3' height='3'/><rect fill='%236a8afa' x='11' y='7' width='3' height='3'/></svg>">
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
-    html, body {
+
+    html,
+    body {
       width: 100%;
       height: 100%;
       background: #1a1a2e;
       overflow: hidden;
       touch-action: none;
     }
+
     canvas {
       display: block;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
     }
-    
+
     /* Trophy Case Button */
     .trophy-case-btn {
       position: fixed;
@@ -40,12 +45,12 @@
       box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
       transition: transform 0.2s, box-shadow 0.2s;
     }
-    
+
     .trophy-case-btn:hover {
       transform: scale(1.1);
       box-shadow: 0 6px 20px rgba(255, 215, 0, 0.5);
     }
-    
+
     /* Timeline Panel - Phase 6 */
     .timeline-panel {
       position: fixed;
@@ -62,11 +67,11 @@
       transition: transform 0.3s ease;
       z-index: 100;
     }
-    
+
     .timeline-panel.collapsed {
       transform: translateX(240px);
     }
-    
+
     .timeline-header {
       display: flex;
       justify-content: space-between;
@@ -76,13 +81,13 @@
       border-bottom: 1px solid #4a4a6a;
       border-radius: 8px 0 0 0;
     }
-    
+
     .timeline-title {
       color: #e0e0f0;
       font-size: 14px;
       font-weight: 600;
     }
-    
+
     .timeline-toggle {
       background: none;
       border: none;
@@ -92,17 +97,17 @@
       padding: 4px 8px;
       transition: color 0.2s;
     }
-    
+
     .timeline-toggle:hover {
       color: #ffffff;
     }
-    
+
     .timeline-events {
       flex: 1;
       overflow-y: auto;
       padding: 10px;
     }
-    
+
     .timeline-event {
       padding: 10px 12px;
       margin-bottom: 8px;
@@ -111,70 +116,71 @@
       border-left: 3px solid #6a6a8a;
       animation: slideIn 0.3s ease;
     }
-    
+
     @keyframes slideIn {
       from {
         opacity: 0;
         transform: translateX(20px);
       }
+
       to {
         opacity: 1;
         transform: translateX(0);
       }
     }
-    
+
     .timeline-event.started {
       border-left-color: #f0c040;
       background: rgba(60, 55, 30, 0.6);
     }
-    
+
     .timeline-event.completed {
       border-left-color: #40c070;
       background: rgba(30, 55, 40, 0.6);
     }
-    
+
     .timeline-event.idle {
       border-left-color: #808090;
       background: rgba(50, 50, 60, 0.6);
     }
-    
+
     .event-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 4px;
     }
-    
+
     .event-agent {
       color: #ffffff;
       font-size: 13px;
       font-weight: 600;
     }
-    
+
     .event-time {
       color: #808090;
       font-size: 11px;
     }
-    
+
     .event-type {
       color: #a0a0c0;
       font-size: 12px;
     }
-    
+
     .event-task {
       color: #c0c0e0;
       font-size: 11px;
       margin-top: 4px;
       font-style: italic;
     }
-    
+
     .timeline-empty {
       color: #606080;
       text-align: center;
       padding: 30px 10px;
       font-size: 12px;
     }
-    
+
     /* Productivity Dashboard - Phase 8 */
     .productivity-panel {
       position: fixed;
@@ -191,11 +197,11 @@
       transition: transform 0.3s ease;
       z-index: 100;
     }
-    
+
     .productivity-panel.collapsed {
       transform: translateX(-260px);
     }
-    
+
     .productivity-header {
       display: flex;
       justify-content: space-between;
@@ -205,13 +211,13 @@
       border-bottom: 1px solid #4a4a6a;
       border-radius: 0 8px 0 0;
     }
-    
+
     .productivity-title {
       color: #e0e0f0;
       font-size: 14px;
       font-weight: 600;
     }
-    
+
     .productivity-toggle {
       background: none;
       border: none;
@@ -221,17 +227,17 @@
       padding: 4px 8px;
       transition: color 0.2s;
     }
-    
+
     .productivity-toggle:hover {
       color: #ffffff;
     }
-    
+
     .productivity-content {
       flex: 1;
       overflow-y: auto;
       padding: 15px;
     }
-    
+
     .stat-card {
       background: rgba(40, 40, 60, 0.6);
       border-radius: 8px;
@@ -239,7 +245,7 @@
       margin-bottom: 12px;
       border-left: 3px solid #6a8afa;
     }
-    
+
     .stat-label {
       color: #808090;
       font-size: 11px;
@@ -247,19 +253,19 @@
       letter-spacing: 1px;
       margin-bottom: 5px;
     }
-    
+
     .stat-value {
       color: #ffffff;
       font-size: 28px;
       font-weight: bold;
     }
-    
+
     .stat-subtext {
       color: #606080;
       font-size: 11px;
       margin-top: 4px;
     }
-    
+
     .busyness-meter {
       height: 8px;
       background: rgba(40, 40, 60, 0.8);
@@ -267,14 +273,14 @@
       overflow: hidden;
       margin-top: 8px;
     }
-    
+
     .busyness-fill {
       height: 100%;
       background: linear-gradient(90deg, #40c070, #f0c040, #e04050);
       transition: width 0.5s ease;
       border-radius: 4px;
     }
-    
+
     .leaderboard-item {
       display: flex;
       justify-content: space-between;
@@ -284,7 +290,7 @@
       border-radius: 6px;
       margin-bottom: 8px;
     }
-    
+
     .leaderboard-rank {
       width: 24px;
       height: 24px;
@@ -297,37 +303,48 @@
       font-weight: bold;
       margin-right: 10px;
     }
-    
-    .leaderboard-rank.gold { background: linear-gradient(135deg, #FFD700, #FFA500); color: #1a1a2e; }
-    .leaderboard-rank.silver { background: linear-gradient(135deg, #C0C0C0, #A0A0A0); color: #1a1a2e; }
-    .leaderboard-rank.bronze { background: linear-gradient(135deg, #CD7F32, #A0522D); color: #1a1a2e; }
-    
+
+    .leaderboard-rank.gold {
+      background: linear-gradient(135deg, #FFD700, #FFA500);
+      color: #1a1a2e;
+    }
+
+    .leaderboard-rank.silver {
+      background: linear-gradient(135deg, #C0C0C0, #A0A0A0);
+      color: #1a1a2e;
+    }
+
+    .leaderboard-rank.bronze {
+      background: linear-gradient(135deg, #CD7F32, #A0522D);
+      color: #1a1a2e;
+    }
+
     .leaderboard-name {
       flex: 1;
       color: #c0c0e0;
       font-size: 13px;
     }
-    
+
     .leaderboard-score {
       color: #40c070;
       font-size: 13px;
       font-weight: 600;
     }
-    
+
     .heatmap-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
       gap: 4px;
       margin-top: 10px;
     }
-    
+
     .heatmap-cell {
       aspect-ratio: 1;
       border-radius: 4px;
       background: rgba(40, 40, 60, 0.6);
       transition: background 0.3s;
     }
-    
+
     /* Sound Toggle - Phase 8 */
     .sound-toggle {
       position: fixed;
@@ -346,17 +363,17 @@
       align-items: center;
       justify-content: center;
     }
-    
+
     .sound-toggle:hover {
       transform: scale(1.1);
       box-shadow: 0 4px 15px rgba(100, 100, 140, 0.4);
     }
-    
+
     .sound-toggle.active {
       background: rgba(64, 192, 112, 0.3);
       border-color: #40c070;
     }
-    
+
     .sound-toggle .volume-slider {
       position: absolute;
       bottom: -30px;
@@ -369,7 +386,7 @@
       border-radius: 2px;
       cursor: pointer;
     }
-    
+
     .sound-toggle .volume-slider::-webkit-slider-thumb {
       -webkit-appearance: none;
       width: 12px;
@@ -380,6 +397,7 @@
     }
   </style>
 </head>
+
 <body>
   <canvas id="office"></canvas>
   <div id="productivity-panel" class="productivity-panel">
@@ -394,14 +412,14 @@
         <div class="stat-value" id="prod-tasks-completed">0</div>
         <div class="stat-subtext" id="prod-tasks-subtext">Goal: 5 tasks</div>
       </div>
-      
+
       <!-- Active Agents -->
       <div class="stat-card" style="border-left-color: #40c070;">
         <div class="stat-label">Active Agents</div>
         <div class="stat-value" id="prod-active-agents">0</div>
         <div class="stat-subtext">Currently working</div>
       </div>
-      
+
       <!-- Busyness Meter -->
       <div class="stat-card" style="border-left-color: #f0c040;">
         <div class="stat-label">Office Busyness</div>
@@ -410,13 +428,13 @@
           <div class="busyness-fill" id="prod-busyness-fill" style="width: 0%;"></div>
         </div>
       </div>
-      
+
       <!-- Desk Heatmap -->
       <div class="stat-card" style="border-left-color: #6a8afa;">
         <div class="stat-label">Desk Usage Heatmap</div>
         <div class="heatmap-grid" id="heatmap-grid"></div>
       </div>
-      
+
       <!-- Leaderboard -->
       <div class="stat-card" style="border-left-color: #FFD700;">
         <div class="stat-label">🏆 Weekly Leaderboard</div>
@@ -434,6 +452,7 @@
   <button id="trophy-case-btn" class="trophy-case-btn" title="Trophy Case">🏆</button>
   <button id="sound-toggle" class="sound-toggle" title="Toggle Sound">🔇</button>
   <script src="sound-system.js"></script>
+  <script src="tiled-loader.js"></script>
   <script src="tile-renderer.js"></script>
   <script src="app.js"></script>
   <script src="sprites.js"></script>
@@ -443,10 +462,14 @@
   <script>
     // Initialize sprites after DOM and scripts are loaded
     document.addEventListener('DOMContentLoaded', () => {
-      // Initialize tile renderer first
+      // Initialize tile renderer (also loads Tiled map)
       if (window.initTileRenderer) {
         window.initTileRenderer().then(() => {
           console.log('Tile renderer ready');
+          // Initialize character zones from Tiled map data
+          if (window.initFromTiledMap) {
+            window.initFromTiledMap();
+          }
         });
       }
 
@@ -454,11 +477,11 @@
       if (window.drawCharacters) {
         window.drawCharacters();
       }
-      
+
       // Initialize trophy case
       if (typeof createTrophyCasePanel === 'function') {
         window.trophyCasePanel = createTrophyCasePanel();
-        
+
         // Hook up trophy case button
         const trophyBtn = document.getElementById('trophy-case-btn');
         if (trophyBtn) {
@@ -467,7 +490,7 @@
           });
         }
       }
-      
+
       // Demo: Award some achievements for testing
       setTimeout(() => {
         if (window.awardTaskComplete) {
@@ -476,7 +499,7 @@
           window.awardTaskComplete(240);
         }
       }, 3000);
-      
+
       // Initialize sound toggle - Phase 8
       const soundToggle = document.getElementById('sound-toggle');
       if (soundToggle && window.SoundManager) {
@@ -487,19 +510,19 @@
           // Start ambient sounds if enabled
           SoundManager.startAmbient();
         }
-        
+
         soundToggle.addEventListener('click', () => {
           const isEnabled = SoundManager.toggle();
           soundToggle.classList.toggle('active', isEnabled);
           soundToggle.textContent = isEnabled ? '🔊' : '🔇';
-          
+
           if (isEnabled) {
             SoundManager.startAmbient();
           } else {
             SoundManager.stopAmbient();
           }
         });
-        
+
         // Add volume slider
         const volumeSlider = document.createElement('input');
         volumeSlider.type = 'range';
@@ -509,15 +532,16 @@
         volumeSlider.value = SoundManager.volume * 100;
         volumeSlider.title = 'Volume';
         soundToggle.appendChild(volumeSlider);
-        
+
         volumeSlider.addEventListener('input', (e) => {
           SoundManager.setVolume(e.target.value / 100);
         });
-        
+
         volumeSlider.addEventListener('click', (e) => {
           e.stopPropagation();
         });
       }
     });
   </script>
+
 </html>

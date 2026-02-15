@@ -30,15 +30,15 @@ const Waypoints = {
   LOUNGE_ENTER: { x: 0.08, y: 0.55 },      // Main lounge entry point
   LOUNGE_CENTER: { x: 0.15, y: 0.65 },      // Lounge center
   LOUNGE_EXIT: { x: 0.30, y: 0.50 },       // Exit to hallway
-  
+
   // Hallway waypoints (center)
   HALLWAY_LEFT: { x: 0.35, y: 0.50 },      // Hallway left
   HALLWAY_CENTER: { x: 0.50, y: 0.50 },    // Hallway center intersection
   HALLWAY_RIGHT: { x: 0.65, y: 0.50 },     // Hallway right
-  
+
   // Desk area waypoints (right side)
   HALLWAY_TO_DESKS: { x: 0.70, y: 0.50 },  // Entry to desk area
-  
+
   // Individual desk destination waypoints (at the desks)
   NOVA_DESK: { x: 0.15, y: 0.12 },
   ZERO1_DESK: { x: 0.12, y: 0.40 },
@@ -138,6 +138,156 @@ const PATHS_TO_LOUNGE = {
   flash: [...PATHS.flash].reverse()
 };
 
+// ============================================================================
+// Tiled Map Zone Integration
+// ============================================================================
+// When a Tiled map is loaded with zones and waypoints, these override the
+// hardcoded values above. Call initFromTiledMap() after tiled-loader has loaded.
+
+let tiledZonesActive = false;
+let dynamicLoungePositions = null;
+let dynamicDeskPositions = {};
+
+/**
+ * Initialize character positions and paths from Tiled map zones/waypoints.
+ * Called automatically when tiledMapData becomes available.
+ */
+function initFromTiledMap() {
+  const mapData = window.tiledMapData;
+  if (!mapData || !mapData.loaded) return false;
+
+  console.log('[Sprites] Initializing from Tiled map zones...');
+
+  // Extract lounge positions from lounge/kitchen zones
+  const loungeZones = (window.getZonesByType ? window.getZonesByType('lounge') : [])
+    .concat(window.getZonesByType ? window.getZonesByType('kitchen') : []);
+
+  if (loungeZones.length > 0) {
+    dynamicLoungePositions = [];
+    for (const zone of loungeZones) {
+      // Generate several random wander points within each zone
+      for (let i = 0; i < 3; i++) {
+        dynamicLoungePositions.push({
+          x: zone.x + (0.2 + Math.random() * 0.6) * zone.width,
+          y: zone.y + (0.2 + Math.random() * 0.6) * zone.height,
+        });
+      }
+      // Also add center
+      dynamicLoungePositions.push({
+        x: zone.x + zone.width / 2,
+        y: zone.y + zone.height / 2,
+      });
+    }
+    console.log(`[Sprites] ${dynamicLoungePositions.length} lounge positions from ${loungeZones.length} zones`);
+  }
+
+  // Extract desk positions from desk zones with agent assignments
+  const deskZones = window.getZonesByType ? window.getZonesByType('desk') : [];
+  for (const zone of deskZones) {
+    if (zone.agent) {
+      const center = window.getZoneCenter ? window.getZoneCenter(zone) : {
+        x: zone.x + zone.width / 2,
+        y: zone.y + zone.height / 2,
+      };
+      dynamicDeskPositions[zone.agent] = center;
+      console.log(`[Sprites] Desk for ${zone.agent}: (${center.x.toFixed(3)}, ${center.y.toFixed(3)})`);
+    }
+  }
+
+  // Update CHARACTERS with desk positions from zones
+  for (const character of CHARACTERS) {
+    const deskPos = dynamicDeskPositions[character.id];
+    if (deskPos) {
+      character.deskX = deskPos.x;
+      character.deskY = deskPos.y;
+    }
+  }
+
+  // Set initial positions to lounge if available
+  if (dynamicLoungePositions && dynamicLoungePositions.length > 0) {
+    for (const character of CHARACTERS) {
+      const pos = dynamicLoungePositions[Math.floor(Math.random() * dynamicLoungePositions.length)];
+      character.offsetX = pos.x;
+      character.offsetY = pos.y;
+      character.targetX = pos.x;
+      character.targetY = pos.y;
+    }
+  }
+
+  tiledZonesActive = true;
+  console.log('[Sprites] Tiled zone integration active');
+  return true;
+}
+
+/**
+ * Get lounge positions — dynamic from Tiled or hardcoded fallback.
+ */
+function getLoungePositions() {
+  if (dynamicLoungePositions && dynamicLoungePositions.length > 0) {
+    return dynamicLoungePositions;
+  }
+  // Hardcoded fallback
+  return [
+    { x: 0.08, y: 0.55 },
+    { x: 0.15, y: 0.65 },
+    { x: 0.08, y: 0.75 },
+    { x: 0.18, y: 0.80 },
+    { x: 0.12, y: 0.50 },
+  ];
+}
+
+/**
+ * Build a path from current position to a desk using Tiled waypoints.
+ * Falls back to hardcoded PATHS if waypoints aren't available.
+ */
+function buildPathToDesk(characterId, fromX, fromY) {
+  // Try Tiled waypoint pathfinding
+  if (tiledZonesActive && window.findWaypointPath && window.findNearestWaypoint) {
+    const deskPos = dynamicDeskPositions[characterId];
+    if (deskPos) {
+      const nearFrom = window.findNearestWaypoint(fromX, fromY);
+      const nearDesk = window.findNearestWaypoint(deskPos.x, deskPos.y);
+      if (nearFrom && nearDesk) {
+        const wpPath = window.findWaypointPath(nearFrom, nearDesk);
+        if (wpPath && wpPath.length >= 2) {
+          // Prepend current position and append exact desk position
+          return [
+            { x: fromX, y: fromY },
+            ...wpPath,
+            { x: deskPos.x, y: deskPos.y }
+          ];
+        }
+      }
+    }
+  }
+  // Fallback to hardcoded path
+  return PATHS[characterId] || null;
+}
+
+/**
+ * Build a path from desk back to lounge using Tiled waypoints.
+ */
+function buildPathToLounge(characterId, fromX, fromY) {
+  // Try Tiled waypoint pathfinding
+  if (tiledZonesActive && window.findWaypointPath && window.findNearestWaypoint && dynamicLoungePositions) {
+    const target = dynamicLoungePositions[Math.floor(Math.random() * dynamicLoungePositions.length)];
+    const nearFrom = window.findNearestWaypoint(fromX, fromY);
+    const nearLounge = window.findNearestWaypoint(target.x, target.y);
+    if (nearFrom && nearLounge) {
+      const wpPath = window.findWaypointPath(nearFrom, nearLounge);
+      if (wpPath && wpPath.length >= 2) {
+        return [
+          { x: fromX, y: fromY },
+          ...wpPath,
+          { x: target.x, y: target.y }
+        ];
+      }
+    }
+  }
+  // Fallback
+  return findPathToLounge(fromX, fromY);
+}
+
 // Linear interpolation function
 function lerp(start, end, t) {
   return start + (end - start) * t;
@@ -146,15 +296,15 @@ function lerp(start, end, t) {
 // Get point along a path at parameter t (0-1)
 function getPointOnPath(path, t) {
   if (!path || path.length < 2) return null;
-  
+
   const totalSegments = path.length - 1;
   const segmentT = t * totalSegments;
   const segmentIndex = Math.min(Math.floor(segmentT), totalSegments - 1);
   const localT = segmentT - segmentIndex;
-  
+
   const p1 = path[segmentIndex];
   const p2 = path[segmentIndex + 1];
-  
+
   return {
     x: lerp(p1.x, p2.x, localT),
     y: lerp(p1.y, p2.y, localT)
@@ -387,43 +537,35 @@ function getOfficeBounds() {
 function setCharacterState(characterId, newState) {
   const character = CHARACTERS.find(c => c.id === characterId);
   if (!character) return;
-  
+
   const oldState = character.state;
   character.state = newState;
   character.frame = 0;
-  
-  // Define lounge area (kitchen/lounge area - left side of office)
-  const loungePositions = [
-    { x: 0.08, y: 0.55 },  // Near couch
-    { x: 0.15, y: 0.65 },  // Lounge center
-    { x: 0.08, y: 0.75 },  // Near plant
-    { x: 0.18, y: 0.80 },  // Coffee table area
-    { x: 0.12, y: 0.50 }   // Near kitchen
-  ];
-  
+
+  // Get lounge positions (dynamic from Tiled or hardcoded fallback)
+  const loungePositions = getLoungePositions();
+
   // Set target positions and paths based on new state
   switch (newState) {
     case CharacterStates.IDLE:
-      // Return to lounge/kitchen area (random position in left side)
-      // Use pathfinding from current position
+      // Return to lounge/kitchen area
       const loungePos = loungePositions[Math.floor(Math.random() * loungePositions.length)];
-      // Find a path to the lounge position
-      character.path = findPathToLounge(character.offsetX, character.offsetY);
+      character.path = buildPathToLounge(character.id, character.offsetX, character.offsetY);
       character.pathProgress = 0;
       character.pathLength = character.path ? getPathLength(character.path) : 0;
       character.targetX = loungePos.x;
       character.targetY = loungePos.y;
       break;
-      
+
     case CharacterStates.WALKING_TO_DESK:
       // Move to their specific desk using path system
-      character.path = PATHS[character.id];
+      character.path = buildPathToDesk(character.id, character.offsetX, character.offsetY);
       character.pathProgress = 0;
       character.pathLength = character.path ? getPathLength(character.path) : 0;
       character.targetX = character.deskX;
       character.targetY = character.deskY;
       break;
-      
+
     case CharacterStates.WORKING:
       // Stay at desk - clear any path
       character.path = null;
@@ -431,10 +573,10 @@ function setCharacterState(characterId, newState) {
       character.targetX = character.deskX;
       character.targetY = character.deskY;
       break;
-      
+
     case CharacterStates.WALKING_TO_LOUNGE:
       // Move back to lounge using path system
-      character.path = findPathFromDesk(character.id);
+      character.path = buildPathToLounge(character.id, character.offsetX, character.offsetY);
       character.pathProgress = 0;
       character.pathLength = character.path ? getPathLength(character.path) : 0;
       const loungeReturnPos = loungePositions[Math.floor(Math.random() * loungePositions.length)];
@@ -449,7 +591,7 @@ function findPathToLounge(startX, startY) {
   // Simple: start from lounge entrance and reverse from there
   // Build a path from current position to lounge
   const loungeEntry = Waypoints.LOUNGE_ENTER;
-  
+
   // Check if we're on the right side (desk area) or left side (lounge)
   if (startX > 0.6) {
     // Currently at desk area - need to go through hallway
@@ -480,7 +622,7 @@ function findPathFromDesk(characterId) {
 function updateCharacterFrame(character, deltaTime) {
   character.frameTime = character.frameTime || 0;
   character.frameTime += deltaTime;
-  
+
   // Advance frame every FRAME_DURATION ms
   if (character.frameTime >= FRAME_DURATION) {
     character.frame = (character.frame + 1) % 3; // 3 frames per state
@@ -505,18 +647,8 @@ function updateIdleWandering(character, deltaTime) {
   const wanderInterval = 2000 + Math.random() * 2000;
   if (character.wanderTimer > wanderInterval) {
     character.wanderTimer = 0;
-    // Pick a random position - split between lounge and kitchen
-    const loungePositions = [
-      { x: 0.08, y: 0.55 },  // Near couch
-      { x: 0.15, y: 0.65 },  // Lounge center
-      { x: 0.08, y: 0.75 },  // Near plant
-      { x: 0.18, y: 0.80 },  // Coffee table area
-      { x: 0.12, y: 0.50 },  // Near kitchen
-      { x: 0.05, y: 0.45 },  // Kitchen counter left
-      { x: 0.10, y: 0.40 },  // Kitchen center
-      { x: 0.05, y: 0.55 },  // Kitchen coffee area
-      { x: 0.20, y: 0.45 }    // Kitchen / lounge transition
-    ];
+    // Use dynamic lounge positions from Tiled map or hardcoded fallback
+    const loungePositions = getLoungePositions();
     const pos = loungePositions[Math.floor(Math.random() * loungePositions.length)];
     character.wanderTargetX = pos.x;
     character.wanderTargetY = pos.y;
@@ -540,19 +672,19 @@ function updateCharacterPosition(character, deltaTime) {
   updateIdleWandering(character, deltaTime);
 
   if (character.state === CharacterStates.WALKING_TO_DESK ||
-      character.state === CharacterStates.WALKING_TO_LOUNGE) {
-    
+    character.state === CharacterStates.WALKING_TO_LOUNGE) {
+
     // Use path system for movement
     if (character.path && character.path.length >= 2) {
       // Calculate how much progress to add based on speed and path length
       const progressIncrement = (WALKING_SPEED * deltaTime) / character.pathLength;
       character.pathProgress += progressIncrement;
-      
+
       if (character.pathProgress >= 1) {
         // Reached the end of the path
         character.offsetX = character.targetX;
         character.offsetY = character.targetY;
-        
+
         // Switch to appropriate state
         if (character.state === CharacterStates.WALKING_TO_DESK) {
           setCharacterState(character.id, CharacterStates.WORKING);
@@ -573,7 +705,7 @@ function updateCharacterPosition(character, deltaTime) {
       const dx = character.targetX - character.offsetX;
       const dy = character.targetY - character.offsetY;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      
+
       if (dist > 0.01) {
         character.offsetX += (dx / dist) * speed * Math.min(dist, 0.1);
         character.offsetY += (dy / dist) * speed * Math.min(dist, 0.1);
@@ -594,18 +726,18 @@ function getStateColor(character) {
   if (window.getMoodStateColor && character.mood) {
     return window.getMoodStateColor(character);
   }
-  
+
   // Fallback to original implementation
   const baseColor = character.baseColor;
   const frame = character.frame;
   const state = character.state;
-  
+
   // Parse base color (hex to RGB)
   const hex = baseColor.replace('#', '');
   let r = parseInt(hex.substring(0, 2), 16);
   let g = parseInt(hex.substring(2, 4), 16);
   let b = parseInt(hex.substring(4, 6), 16);
-  
+
   // Apply state-based color variations
   switch (state) {
     case CharacterStates.IDLE:
@@ -629,7 +761,7 @@ function getStateColor(character) {
       b = Math.max(0, b + workDarken);
       break;
   }
-  
+
   return `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
 }
 
@@ -701,7 +833,7 @@ function drawCharacter(character, deltaTime, bounds = null) {
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = 2 * scale;
   ctx.strokeRect(charX - spriteW / 2, charY - spriteH / 2 + frameOffset, spriteW, spriteH);
-  
+
   // Draw state indicator (small dot below character)
   const stateColors = {
     [CharacterStates.IDLE]: '#88ff88',
@@ -713,14 +845,14 @@ function drawCharacter(character, deltaTime, bounds = null) {
   ctx.beginPath();
   ctx.arc(charX, charY + spriteH / 2 + 4 * scale, 3 * scale, 0, Math.PI * 2);
   ctx.fill();
-  
+
   // Draw name label above character
   ctx.fillStyle = '#ffffff';
   ctx.font = `bold ${10 * scale}px Arial`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
   ctx.fillText(character.name, charX, charY - spriteH / 2 - 4 * scale + frameOffset);
-  
+
   // Reset text baseline
   ctx.textBaseline = 'alphabetic';
 }
@@ -776,19 +908,19 @@ const characterParticles = {};
 // Spawn typing particles for a working character
 function spawnTypingParticles(character) {
   if (character.state !== CharacterStates.WORKING) return;
-  
+
   // Initialize particle array for this character
   if (!characterParticles[character.id]) {
     characterParticles[character.id] = [];
   }
-  
+
   // Spawn 1-2 particles per frame with low probability
   if (Math.random() < 0.3) {
     const { x, y, w, h } = getOfficeBounds();
     // Spawn near the character's position (at their desk)
     const charX = x + w * character.deskX;
     const charY = y + h * character.deskY;
-    
+
     const particle = new TypingParticle(
       charX + (Math.random() - 0.5) * 20 * scale,
       charY - 15 * scale,
@@ -802,7 +934,7 @@ function spawnTypingParticles(character) {
 function updateTypingParticles() {
   Object.keys(characterParticles).forEach(charId => {
     const particles = characterParticles[charId];
-    
+
     // Update particles
     for (let i = particles.length - 1; i >= 0; i--) {
       if (!particles[i].update(16)) {
@@ -823,28 +955,28 @@ function drawTypingParticles() {
 // Monitor glow effect for working agents
 function drawMonitorGlow(character) {
   if (character.state !== CharacterStates.WORKING) return;
-  
+
   const { x, y, w, h } = getOfficeBounds();
   const charX = x + w * character.deskX;
   const charY = y + h * character.deskY;
-  
+
   // Draw glow around monitor position
   const glowX = charX - 15 * scale;
   const glowY = charY - 10 * scale;
   const glowW = 40 * scale;
   const glowH = 25 * scale;
-  
+
   // Create gradient for glow effect
   const gradient = ctx.createRadialGradient(
     glowX + glowW / 2, glowY + glowH / 2, 0,
     glowX + glowW / 2, glowY + glowH / 2, glowW
   );
-  
+
   const glowColor = character.baseColor;
   gradient.addColorStop(0, glowColor.replace(')', ', 0.4)').replace('rgb', 'rgba'));
   gradient.addColorStop(0.5, glowColor.replace(')', ', 0.2)').replace('rgb', 'rgba'));
   gradient.addColorStop(1, 'transparent');
-  
+
   ctx.fillStyle = gradient;
   ctx.fillRect(glowX - glowW / 2, glowY - glowH / 2, glowW * 2, glowH * 2);
 }
@@ -895,12 +1027,12 @@ function updateCoffeeSteam(timestamp) {
     const { x, y, w, h } = getOfficeBounds();
     const coffeeX = x + w * 0.08; // Kitchen coffee machine position
     const coffeeY = y + h * 0.15;
-    
+
     steamParticles.push(new SteamParticle(coffeeX, coffeeY));
     steamParticles.push(new SteamParticle(coffeeX + 10 * scale, coffeeY - 5 * scale));
     lastSteamSpawn = timestamp;
   }
-  
+
   // Update existing particles
   for (let i = steamParticles.length - 1; i >= 0; i--) {
     if (!steamParticles[i].update(16)) {
@@ -931,3 +1063,5 @@ window.drawTypingParticles = drawTypingParticles;
 window.drawMonitorGlow = drawMonitorGlow;
 window.updateCoffeeSteam = updateCoffeeSteam;
 window.drawCoffeeSteam = drawCoffeeSteam;
+window.initFromTiledMap = initFromTiledMap;
+window.getLoungePositions = getLoungePositions;
