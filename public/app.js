@@ -6,6 +6,15 @@ const ctx = canvas.getContext('2d');
 // Animation timestamp for requestAnimationFrame
 let animationTimestamp = 0;
 
+// Whiteboard variables (declared early to avoid TDZ)
+let whiteboardDiagrams = [
+  { type: 'flowchart', color: '#8aff8a' },
+  { type: 'boxes', color: '#ff8a8a' },
+  { type: 'circles', color: '#8a8aff' }
+];
+let currentWhiteboardDiagram = 0;
+let whiteboardProgress = 0;
+
 // Office dimensions and layout
 let scale = 1;
 window.scale = scale;
@@ -1112,15 +1121,6 @@ const coffeeSteamParticles = [];
 
 // Water cooler bubbles
 const waterCoolerBubbles = [];
-
-// Whiteboard diagrams for Nova
-const whiteboardDiagrams = [
-  { type: 'flowchart', color: '#8aff8a' },
-  { type: 'boxes', color: '#ff8a8a' },
-  { type: 'circles', color: '#8a8aff' }
-];
-let currentWhiteboardDiagram = 0;
-let whiteboardProgress = 0;
 
 // Draw ambient animations (clock, plants swaying, light flicker)
 function drawAmbientAnimations(timestamp) {
