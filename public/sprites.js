@@ -9,7 +9,7 @@ function getMinWidth() { return window.MIN_WIDTH || 1200; }
 function getMinHeight() { return window.MIN_HEIGHT || 800; }
 
 // Walking speed (units per millisecond) - adjustable
-const WALKING_SPEED = 0.0008;
+const WALKING_SPEED = 0.0002;
 
 // Character states for the state machine
 const CharacterStates = {
@@ -46,7 +46,8 @@ const Waypoints = {
   ZERO3_DESK: { x: 0.76, y: 0.40 },
   DELTA_DESK: { x: 0.72, y: 0.12 },
   BESTIE_DESK: { x: 0.22, y: 0.62 },
-  DEXTER_DESK: { x: 0.78, y: 0.62 }
+  DEXTER_DESK: { x: 0.78, y: 0.62 },
+  FLASH_DESK: { x: 0.88, y: 0.62 }
 };
 
 // Define paths from lounge to each desk
@@ -113,6 +114,15 @@ const PATHS = {
     Waypoints.HALLWAY_RIGHT,
     Waypoints.HALLWAY_TO_DESKS,
     Waypoints.DEXTER_DESK
+  ],
+  flash: [
+    Waypoints.LOUNGE_ENTER,
+    Waypoints.LOUNGE_EXIT,
+    Waypoints.HALLWAY_LEFT,
+    Waypoints.HALLWAY_CENTER,
+    Waypoints.HALLWAY_RIGHT,
+    Waypoints.HALLWAY_TO_DESKS,
+    Waypoints.FLASH_DESK
   ]
 };
 
@@ -124,7 +134,8 @@ const PATHS_TO_LOUNGE = {
   zero3: [...PATHS.zero3].reverse(),
   delta: [...PATHS.delta].reverse(),
   bestie: [...PATHS.bestie].reverse(),
-  dexter: [...PATHS.dexter].reverse()
+  dexter: [...PATHS.dexter].reverse(),
+  flash: [...PATHS.flash].reverse()
 };
 
 // Linear interpolation function
@@ -322,6 +333,28 @@ const CHARACTERS = [
     path: null,
     pathProgress: 0,
     pathLength: 0
+  },
+  {
+    id: 'flash',
+    name: 'Flash',
+    color: '#ff6b6b',
+    position: 'flex_desk_2',
+    // Positioned in lounge initially
+    offsetX: 0.20,
+    offsetY: 0.75,
+    // Specific desk coordinates for Flash flex desk (right side)
+    deskX: 0.88,
+    deskY: 0.62,
+    // State machine properties
+    state: CharacterStates.IDLE,
+    frame: 0,
+    targetX: 0.20,
+    targetY: 0.75,
+    baseColor: '#ff6b6b',
+    // Pathfinding properties
+    path: null,
+    pathProgress: 0,
+    pathLength: 0
   }
 ];
 
@@ -455,7 +488,7 @@ function updateCharacterFrame(character, deltaTime) {
   }
 }
 
-// Idle wandering - make characters wander around the lounge area
+// Idle wandering - make characters wander around the lounge/kitchen area
 function updateIdleWandering(character, deltaTime) {
   if (character.state !== CharacterStates.IDLE) return;
 
@@ -468,32 +501,36 @@ function updateIdleWandering(character, deltaTime) {
 
   character.wanderTimer += deltaTime;
 
-  // Change wander target every 3-5 seconds
-  const wanderInterval = 3000 + Math.random() * 2000;
+  // Change wander target every 2-4 seconds (faster wandering)
+  const wanderInterval = 2000 + Math.random() * 2000;
   if (character.wanderTimer > wanderInterval) {
     character.wanderTimer = 0;
-    // Pick a random position in the lounge area
+    // Pick a random position - split between lounge and kitchen
     const loungePositions = [
       { x: 0.08, y: 0.55 },  // Near couch
       { x: 0.15, y: 0.65 },  // Lounge center
       { x: 0.08, y: 0.75 },  // Near plant
       { x: 0.18, y: 0.80 },  // Coffee table area
-      { x: 0.12, y: 0.50 }   // Near kitchen
+      { x: 0.12, y: 0.50 },  // Near kitchen
+      { x: 0.05, y: 0.45 },  // Kitchen counter left
+      { x: 0.10, y: 0.40 },  // Kitchen center
+      { x: 0.05, y: 0.55 },  // Kitchen coffee area
+      { x: 0.20, y: 0.45 }    // Kitchen / lounge transition
     ];
     const pos = loungePositions[Math.floor(Math.random() * loungePositions.length)];
     character.wanderTargetX = pos.x;
     character.wanderTargetY = pos.y;
   }
 
-  // Slowly move toward wander target
-  const wanderSpeed = 0.00003 * deltaTime;
+  // Move toward wander target (faster than before)
+  const wanderSpeed = 0.00015 * deltaTime;
   const dx = character.wanderTargetX - character.offsetX;
   const dy = character.wanderTargetY - character.offsetY;
   const dist = Math.sqrt(dx * dx + dy * dy);
 
-  if (dist > 0.005) {
-    character.offsetX += (dx / dist) * wanderSpeed * Math.min(dist, 0.05);
-    character.offsetY += (dy / dist) * wanderSpeed * Math.min(dist, 0.05);
+  if (dist > 0.003) {
+    character.offsetX += (dx / dist) * wanderSpeed * Math.min(dist, 0.08);
+    character.offsetY += (dy / dist) * wanderSpeed * Math.min(dist, 0.08);
   }
 }
 

@@ -980,7 +980,8 @@ const API_TO_CHARACTER_MAP = {
   'zero-3': 'zero3',
   'delta': 'delta',
   'bestie': 'bestie',
-  'dexter': 'dexter'
+  'dexter': 'dexter',
+  'flash': 'flash'
 };
 
 // Start polling /api/status for live agent updates
