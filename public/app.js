@@ -967,6 +967,10 @@ function processAgentStatus(agents) {
         if (window.addTimelineEvent) {
           window.addTimelineEvent(character.name, 'started', agent.currentTask);
         }
+        // Trigger sound on agent start (Phase 8)
+        if (window.onAgentStart) {
+          window.onAgentStart(character);
+        }
       } else if (agent.state === 'idle' && currentState === states.WORKING) {
         // Agent stopped working - walk back to lounge
         window.setCharacterState(characterId, states.WALKING_TO_LOUNGE);
