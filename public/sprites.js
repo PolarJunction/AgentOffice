@@ -2,17 +2,11 @@
 // Phase 1: Static character sprites at designated positions
 // Phase 2: Character state machine for animations
 
-// Get office layout constants from app.js (global scope)
-const MIN_WIDTH = window.MIN_WIDTH || 1200;
-const MIN_HEIGHT = window.MIN_HEIGHT || 800;
-// Use Object.defineProperty to avoid redeclaring 'scale' from app.js
-if (typeof scale === 'undefined') {
-  Object.defineProperty(window, 'scale', {
-    get: function() { return window._scale || 1; },
-    set: function(v) { window._scale = v; },
-    configurable: true
-  });
-}
+// Note: MIN_WIDTH, MIN_HEIGHT, and scale are accessed from app.js via window
+// Helper to get MIN_WIDTH with fallback
+function getMinWidth() { return window.MIN_WIDTH || 1200; }
+// Helper to get MIN_HEIGHT with fallback
+function getMinHeight() { return window.MIN_HEIGHT || 800; }
 
 // Walking speed (units per millisecond) - adjustable
 const WALKING_SPEED = 0.0008;
@@ -340,19 +334,19 @@ const LABEL_OFFSET = -12;
 const FRAME_DURATION = 500;
 
 // Get office layout boundaries (must match app.js)
+// Returns coordinates in the transformed space (centered at origin)
 function getOfficeBounds() {
   // Guard: ensure canvas is initialized before use
   if (!canvas || !canvas.width || !canvas.height) {
-    return { cx: 0, cy: 0, w: MIN_WIDTH, h: MIN_HEIGHT, x: 0, y: 0, scale: 1 };
+    return { cx: 0, cy: 0, w: getMinWidth(), h: getMinHeight(), x: 0, y: 0, scale: 1 };
   }
-  const cx = canvas.width / 2;
-  const cy = canvas.height / 2;
-  const w = MIN_WIDTH * scale;
-  const h = MIN_HEIGHT * scale;
-  const x = cx - w / 2;
-  const y = cy - h / 2;
-  
-  return { cx, cy, w, h, x, y, scale };
+  const w = getMinWidth() * scale;
+  const h = getMinHeight() * scale;
+  // Office is centered at origin in transformed space
+  const x = -w / 2;
+  const y = -h / 2;
+
+  return { cx: 0, cy: 0, w, h, x, y, scale };
 }
 
 // Transition character to a new state

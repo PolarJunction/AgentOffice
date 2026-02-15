@@ -15,6 +15,25 @@ let whiteboardDiagrams = [
 let currentWhiteboardDiagram = 0;
 let whiteboardProgress = 0;
 
+// Water cooler bubbles (declared early to avoid TDZ)
+let waterCoolerBubbles = [];
+
+// Clock variables (declared early to avoid TDZ)
+let clockTime = new Date();
+let clockAngle = 0;
+
+// Speech bubbles (declared early to avoid TDZ)
+const speechBubbles = [];
+
+// Coffee steam particles (declared early to avoid TDZ)
+const coffeeSteamParticles = [];
+
+// Timeline events (declared early to avoid TDZ)
+const timelineEvents = [];
+
+// Celebration particles (declared early to avoid TDZ)
+let celebrationParticles = [];
+
 // Office dimensions and layout
 let scale = 1;
 window.scale = scale;
@@ -205,9 +224,6 @@ function getTimeDisplay() {
 // Agent Speech Bubbles - Phase 5
 // ============================================================================
 
-// Speech bubble data structure
-const speechBubbles = [];
-
 // Agent quips by character name
 const AGENT_QUIPS = {
   'Nova': {
@@ -379,29 +395,80 @@ const COLORS = {
 // Set canvas size to full window with HiDPI support
 function resizeCanvas() {
   const dpr = window.devicePixelRatio || 1;
-  
+
   canvas.width = window.innerWidth * dpr;
   canvas.height = window.innerHeight * dpr;
   canvas.style.width = window.innerWidth + 'px';
   canvas.style.height = window.innerHeight + 'px';
-  
-  ctx.scale(dpr, dpr);
-  
-  // Calculate scale based on window size
-  scale = Math.min(canvas.width / MIN_WIDTH / dpr, canvas.height / MIN_HEIGHT / dpr);
-  
-  // Enforce min/max scale constraints
-  const MIN_SCALE = 0.4;
-  const MAX_SCALE = 1.5;
+
+  // Calculate scale - fit to window with some padding
+  const padding = 40;
+  const availableWidth = window.innerWidth - padding * 2;
+  const availableHeight = window.innerHeight - padding * 2;
+  scale = Math.min(availableWidth / MIN_WIDTH, availableHeight / MIN_HEIGHT);
+
+  // Allow scale to go below 1 if window is small
+  const MIN_SCALE = 0.3;
+  const MAX_SCALE = 2.5;
   scale = Math.max(MIN_SCALE, Math.min(scale, MAX_SCALE));
-  
+
   window.scale = scale;
-  
+
   // Update scale indicator if exists
   updateScaleIndicator();
-  
+
   draw();
 }
+
+// ============================================================================
+// Pan and Zoom Support
+// ============================================================================
+
+// Pan and zoom state
+let panX = 0;
+let panY = 0;
+let isDragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+
+// Mouse wheel to zoom
+canvas.addEventListener('wheel', function(e) {
+  e.preventDefault();
+  const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+  scale = Math.max(0.2, Math.min(3.0, scale * zoomFactor));
+  window.scale = scale;
+  updateScaleIndicator();
+  draw();
+});
+
+// Mouse drag to pan
+canvas.addEventListener('mousedown', function(e) {
+  isDragging = true;
+  dragStartX = e.clientX - panX;
+  dragStartY = e.clientY - panY;
+  canvas.style.cursor = 'grabbing';
+});
+
+canvas.addEventListener('mousemove', function(e) {
+  if (isDragging) {
+    panX = e.clientX - dragStartX;
+    panY = e.clientY - dragStartY;
+    draw();
+  }
+});
+
+canvas.addEventListener('mouseup', function() {
+  isDragging = false;
+  canvas.style.cursor = 'grab';
+});
+
+canvas.addEventListener('mouseleave', function() {
+  isDragging = false;
+  canvas.style.cursor = 'grab';
+});
+
+// Set initial cursor
+canvas.style.cursor = 'grab';
 
 // Scale indicator for mobile visibility
 function updateScaleIndicator() {
@@ -440,34 +507,28 @@ window.addEventListener('resize', resizeCanvas);
 // Draw the office layout
 function draw(timestamp = 0) {
   animationTimestamp = timestamp;
-  const cx = canvas.width / 2;
-  const cy = canvas.height / 2;
+  // Office dimensions
   const w = MIN_WIDTH * scale;
   const h = MIN_HEIGHT * scale;
-  const x = cx - w / 2;
-  const y = cy - h / 2;
-  
+  // Office position (centered at origin after translate)
+  const x = -w / 2;
+  const y = -h / 2;
+
   // Clear canvas
   ctx.fillStyle = COLORS.floor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  
+
   // Apply day/night ambient overlay
   const ambient = getAmbientOverlay();
   ctx.fillStyle = ambient.color;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  
-  // Draw time display in corner
-  ctx.fillStyle = '#ffffff';
-  ctx.font = `${14 * scale}px Arial`;
-  ctx.textAlign = 'left';
-  ctx.fillText(getTimeDisplay(), 20 * scale, 30 * scale);
-  
-  // Draw lighting state indicator
-  const lightingState = getLightingState();
-  const stateLabel = lightingState.charAt(0).toUpperCase() + lightingState.slice(1);
-  ctx.fillStyle = lightingState === 'night' ? '#8888ff' : lightingState === 'evening' ? '#ffaa55' : '#ffff88';
-  ctx.fillText(stateLabel, 20 * scale, 50 * scale);
-  
+
+  // Apply pan transformation
+  const cx = window.innerWidth / 2;
+  const cy = window.innerHeight / 2;
+  ctx.save();
+  ctx.translate(panX + cx, panY + cy);
+
   // Office outer walls
   ctx.strokeStyle = COLORS.wallOutline;
   ctx.lineWidth = 4 * scale;
@@ -753,7 +814,22 @@ function draw(timestamp = 0) {
   const bounds = getOfficeBounds();
   drawDeskLamps(bounds.x, bounds.y, bounds.w, bounds.h);
   drawWindow(bounds.x, bounds.y, bounds.w, bounds.h);
-  
+
+  // Restore context (end of pan transformation)
+  ctx.restore();
+
+  // Draw time display (fixed on screen, not affected by pan/zoom)
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '14px Arial';
+  ctx.textAlign = 'left';
+  ctx.fillText(getTimeDisplay(), 20, 30);
+
+  // Draw lighting state indicator (fixed on screen)
+  const lightingState = getLightingState();
+  const stateLabel = lightingState.charAt(0).toUpperCase() + lightingState.slice(1);
+  ctx.fillStyle = lightingState === 'night' ? '#8888ff' : lightingState === 'evening' ? '#ffaa55' : '#ffff88';
+  ctx.fillText(stateLabel, 20, 50);
+
   // Draw character sprites on top of the office layout
   if (window.drawCharacters) {
     window.drawCharacters();
@@ -1009,7 +1085,6 @@ function processAgentStatus(agents) {
 // ============================================================================
 
 // Timeline state
-const timelineEvents = [];
 const MAX_TIMELINE_EVENTS = 20;
 
 // Add event to timeline
@@ -1111,16 +1186,6 @@ window.highlightAgentInTimeline = highlightAgentInTimeline;
 // ============================================================================
 // Ambient Animations - Phase 4 & 5 - Office Ambiance
 // ============================================================================
-
-// Clock variables
-let clockAngle = 0;
-let clockTime = new Date(); // Real time clock
-
-// Coffee steam particles
-const coffeeSteamParticles = [];
-
-// Water cooler bubbles
-const waterCoolerBubbles = [];
 
 // Draw ambient animations (clock, plants swaying, light flicker)
 function drawAmbientAnimations(timestamp) {
@@ -1555,13 +1620,12 @@ function drawCoffeeSteam(timestamp) {
 // ============================================================================
 
 // Helper function to get office bounds
+// Must match how draw() positions the office (centered at origin after translate)
 function getOfficeBounds() {
-  const cx = canvas.width / 2;
-  const cy = canvas.height / 2;
   const w = MIN_WIDTH * scale;
   const h = MIN_HEIGHT * scale;
-  const x = cx - w / 2;
-  const y = cy - h / 2;
+  const x = -w / 2;
+  const y = -h / 2;
   return { x, y, w, h };
 }
 
@@ -1867,9 +1931,6 @@ function drawAchievementTrophies() {
     }
   });
 }
-
-// Celebration animation state
-let celebrationParticles = [];
 
 function spawnCelebration(x, y) {
   const colors = ['#FFD700', '#FF6B6B', '#4CAF50', '#2196F3', '#9C27B0', '#FF9800'];
@@ -2451,24 +2512,70 @@ if (window.initializeOfficeEvents) {
   window.initializeOfficeEvents();
 }
 
-// Initialize timeline (Phase 6)
-setupTimelineToggle();
-renderTimeline();
-
-// Initialize productivity dashboard (Phase 8)
-setupProductivityDashboard();
-
-// ============================================================================
-// Productivity Dashboard (Phase 8)
-// ============================================================================
-
-// Productivity state
+// Productivity state (declared early to avoid TDZ)
 const productivityState = {
   dailyTasksCompleted: 0,
   weeklyLeaderboard: [],
   deskUsageHeatmap: Array(16).fill(0), // 4x4 grid for 16 desks
   totalAgents: 8
 };
+
+// Update productivity stats (declared early to avoid TDZ)
+window.updateProductivityStats = function() {
+  // Get task count from achievement state
+  const tasksCompleted = achievementState?.stats?.tasksCompleted || 0;
+
+  // Update tasks completed
+  const tasksEl = document.getElementById('prod-tasks-completed');
+  if (tasksEl) {
+    tasksEl.textContent = tasksCompleted;
+  }
+
+  // Update tasks subtext with goal progress
+  const tasksSubEl = document.getElementById('prod-tasks-subtext');
+  if (tasksSubEl) {
+    const dailyGoal = 5;
+    const progress = Math.min((tasksCompleted / dailyGoal) * 100, 100);
+    tasksSubEl.textContent = `Goal: ${dailyGoal} tasks (${Math.round(progress)}%)`;
+  }
+
+  // Count active agents (agents with currentTask from CHARACTERS)
+  let activeAgents = 0;
+  if (window.CHARACTERS) {
+    activeAgents = window.CHARACTERS.filter(c => c.currentTask).length;
+  }
+
+  const activeEl = document.getElementById('prod-active-agents');
+  if (activeEl) {
+    activeEl.textContent = activeAgents;
+  }
+
+  // Calculate busyness percentage
+  const totalAgents = window.CHARACTERS ? window.CHARACTERS.length : productivityState.totalAgents;
+  const busynessPercent = totalAgents > 0 ? Math.round((activeAgents / totalAgents) * 100) : 0;
+
+  const busynessEl = document.getElementById('prod-busyness');
+  const busynessFill = document.getElementById('prod-busyness-fill');
+  if (busynessEl) {
+    busynessEl.textContent = busynessPercent + '%';
+  }
+  if (busynessFill) {
+    busynessFill.style.width = busynessPercent + '%';
+  }
+
+  // Update heatmap based on actual agent positions
+  updateHeatmapFromAgents();
+
+  // Update leaderboard
+  updateLeaderboard();
+};
+
+// Initialize timeline (Phase 6)
+setupTimelineToggle();
+renderTimeline();
+
+// Initialize productivity dashboard (Phase 8)
+setupProductivityDashboard();
 
 // Initialize productivity dashboard
 function setupProductivityDashboard() {
@@ -2484,12 +2591,12 @@ function setupProductivityDashboard() {
   
   // Initialize heatmap grid
   initHeatmapGrid();
-  
+
   // Update stats every 5 seconds
-  setInterval(updateProductivityStats, 5000);
-  
+  setInterval(window.updateProductivityStats, 5000);
+
   // Initial render
-  updateProductivityStats();
+  window.updateProductivityStats();
 }
 
 // Initialize heatmap grid cells
@@ -2509,55 +2616,6 @@ function initHeatmapGrid() {
 }
 
 // Update productivity stats display
-window.updateProductivityStats = function() {
-  // Get task count from achievement state
-  const tasksCompleted = achievementState?.stats?.tasksCompleted || 0;
-  
-  // Update tasks completed
-  const tasksEl = document.getElementById('prod-tasks-completed');
-  if (tasksEl) {
-    tasksEl.textContent = tasksCompleted;
-  }
-  
-  // Update tasks subtext with goal progress
-  const tasksSubEl = document.getElementById('prod-tasks-subtext');
-  if (tasksSubEl) {
-    const dailyGoal = 5;
-    const progress = Math.min((tasksCompleted / dailyGoal) * 100, 100);
-    tasksSubEl.textContent = `Goal: ${dailyGoal} tasks (${Math.round(progress)}%)`;
-  }
-  
-  // Count active agents (agents with currentTask from CHARACTERS)
-  let activeAgents = 0;
-  if (window.CHARACTERS) {
-    activeAgents = window.CHARACTERS.filter(c => c.currentTask).length;
-  }
-  
-  const activeEl = document.getElementById('prod-active-agents');
-  if (activeEl) {
-    activeEl.textContent = activeAgents;
-  }
-  
-  // Calculate busyness percentage
-  const totalAgents = window.CHARACTERS ? window.CHARACTERS.length : productivityState.totalAgents;
-  const busynessPercent = totalAgents > 0 ? Math.round((activeAgents / totalAgents) * 100) : 0;
-  
-  const busynessEl = document.getElementById('prod-busyness');
-  const busynessFill = document.getElementById('prod-busyness-fill');
-  if (busynessEl) {
-    busynessEl.textContent = busynessPercent + '%';
-  }
-  if (busynessFill) {
-    busynessFill.style.width = busynessPercent + '%';
-  }
-  
-  // Update heatmap based on actual agent positions
-  updateHeatmapFromAgents();
-  
-  // Update leaderboard
-  updateLeaderboard();
-};
-
 // Update heatmap based on current agent positions
 function updateHeatmapFromAgents() {
   if (!window.CHARACTERS || !window.CharacterStates) return;
