@@ -68,6 +68,10 @@ function resolveGid(gid) {
     const srcX = (localId % cols) * tileset.tileWidth;
     const srcY = Math.floor(localId / cols) * tileset.tileHeight;
 
+    const h = !!(gid & FLIPPED_H);
+    const v = !!(gid & FLIPPED_V);
+    const d = !!(gid & FLIPPED_D);
+
     return {
         tilesetIndex: tiledMapData.tilesets.indexOf(tileset),
         localId,
@@ -76,6 +80,7 @@ function resolveGid(gid) {
         tilesetImage: tileset.image,
         tileWidth: tileset.tileWidth,
         tileHeight: tileset.tileHeight,
+        h, v, d // flip flags
     };
 }
 
@@ -113,7 +118,7 @@ async function loadTiledMap(url) {
 
     let json;
     try {
-        const response = await fetch(url);
+        const response = await fetch(`${url}?t=${Date.now()}`);
         if (!response.ok) {
             console.warn(`[TiledLoader] Failed to fetch ${url}: ${response.status}`);
             return tiledMapData;

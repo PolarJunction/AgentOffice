@@ -92,7 +92,7 @@ function getTransitionProgress() {
   const hour = getCurrentHour();
   const minutes = getCurrentMinutes();
   const timeDecimal = hour + minutes / 60;
-  
+
   // Morning transition: 5:30 AM - 6:00 AM
   if (timeDecimal >= 5.5 && timeDecimal < 6) {
     return (timeDecimal - 5.5) / 0.5;
@@ -116,11 +116,11 @@ function getTransitionProgress() {
 function lerpColor(color1, color2, t) {
   const c1 = hexToRgb(color1);
   const c2 = hexToRgb(color2);
-  
+
   const r = Math.round(c1.r + (c2.r - c1.r) * t);
   const g = Math.round(c1.g + (c2.g - c1.g) * t);
   const b = Math.round(c1.b + (c2.b - c1.b) * t);
-  
+
   return rgbToHex(r, g, b);
 }
 
@@ -160,7 +160,7 @@ function areMonitorsOn() {
 function getSkyColor() {
   const state = getLightingState();
   const transition = getTransitionProgress();
-  
+
   if (state === LIGHTING_STATES.DAY) {
     if (transition !== null) {
       // Transition from night to day
@@ -186,7 +186,7 @@ function getSkyColor() {
 function getAmbientOverlay() {
   const state = getLightingState();
   const transition = getTransitionProgress();
-  
+
   if (state === LIGHTING_STATES.DAY) {
     return { color: 'rgba(255, 250, 220, 0.15)', intensity: 0.15 };
   } else if (state === LIGHTING_STATES.EVENING) {
@@ -259,11 +259,11 @@ function getQuip(agentName, actionType) {
 function showSpeechBubble(characterId, agentName, actionType, taskName = null) {
   const character = window.CHARACTERS?.find(c => c.id === characterId);
   if (!character) return;
-  
-  const text = taskName 
+
+  const text = taskName
     ? `${getQuip(agentName, actionType)}\n${taskName}`
     : getQuip(agentName, actionType);
-  
+
   speechBubbles.push({
     id: Date.now() + Math.random(),
     characterId: characterId,
@@ -280,11 +280,11 @@ function showSpeechBubble(characterId, agentName, actionType, taskName = null) {
 // Update and draw speech bubbles
 function updateAndDrawSpeechBubbles(timestamp) {
   const now = Date.now();
-  
+
   // Update bubble states
   speechBubbles.forEach((bubble, index) => {
     const age = now - bubble.createdAt;
-    
+
     // Update opacity based on age
     if (age < 300) {
       bubble.state = 'appearing';
@@ -299,30 +299,30 @@ function updateAndDrawSpeechBubbles(timestamp) {
       bubble.opacity = 0;
     }
   });
-  
+
   // Remove expired bubbles
   while (speechBubbles.length > 0 && (now - speechBubbles[0].createdAt) > speechBubbles[0].duration) {
     speechBubbles.shift();
   }
-  
+
   // Draw active bubbles
   speechBubbles.forEach(bubble => {
     if (bubble.opacity <= 0) return;
-    
+
     const canvas = document.getElementById('office');
     const rect = canvas.getBoundingClientRect();
     const bubbleX = bubble.x * rect.width;
     const bubbleY = bubble.y * rect.height - 60; // Position above character
-    
+
     // Speech bubble background
     ctx.save();
     ctx.globalAlpha = bubble.opacity * 0.95;
-    
+
     // Bubble body
     ctx.fillStyle = '#ffffff';
     ctx.strokeStyle = '#6a6a8a';
     ctx.lineWidth = 2;
-    
+
     // Measure text for bubble size
     const lines = bubble.text.split('\n');
     ctx.font = '13px Arial';
@@ -331,7 +331,7 @@ function updateAndDrawSpeechBubbles(timestamp) {
     const bubbleHeight = lines.length * 18 + 16;
     const bubbleBX = bubbleX - bubbleWidth / 2;
     const bubbleBY = bubbleY - bubbleHeight;
-    
+
     // Draw rounded rectangle
     const radius = 8;
     ctx.beginPath();
@@ -347,7 +347,7 @@ function updateAndDrawSpeechBubbles(timestamp) {
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
-    
+
     // Draw pointer triangle
     ctx.beginPath();
     ctx.moveTo(bubbleX - 8, bubbleBY + bubbleHeight);
@@ -356,14 +356,14 @@ function updateAndDrawSpeechBubbles(timestamp) {
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
-    
+
     // Draw text
     ctx.fillStyle = '#333333';
     ctx.textAlign = 'center';
     lines.forEach((line, i) => {
       ctx.fillText(line, bubbleX, bubbleBY + 18 + i * 18);
     });
-    
+
     ctx.restore();
   });
 }
@@ -432,7 +432,7 @@ let dragStartX = 0;
 let dragStartY = 0;
 
 // Mouse wheel to zoom
-canvas.addEventListener('wheel', function(e) {
+canvas.addEventListener('wheel', function (e) {
   e.preventDefault();
   const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
   scale = Math.max(0.2, Math.min(3.0, scale * zoomFactor));
@@ -442,14 +442,14 @@ canvas.addEventListener('wheel', function(e) {
 });
 
 // Mouse drag to pan
-canvas.addEventListener('mousedown', function(e) {
+canvas.addEventListener('mousedown', function (e) {
   isDragging = true;
   dragStartX = e.clientX - panX;
   dragStartY = e.clientY - panY;
   canvas.style.cursor = 'grabbing';
 });
 
-canvas.addEventListener('mousemove', function(e) {
+canvas.addEventListener('mousemove', function (e) {
   if (isDragging) {
     panX = e.clientX - dragStartX;
     panY = e.clientY - dragStartY;
@@ -457,12 +457,12 @@ canvas.addEventListener('mousemove', function(e) {
   }
 });
 
-canvas.addEventListener('mouseup', function() {
+canvas.addEventListener('mouseup', function () {
   isDragging = false;
   canvas.style.cursor = 'grab';
 });
 
-canvas.addEventListener('mouseleave', function() {
+canvas.addEventListener('mouseleave', function () {
   isDragging = false;
   canvas.style.cursor = 'grab';
 });
@@ -491,7 +491,7 @@ function updateScaleIndicator() {
     `;
     document.body.appendChild(indicator);
   }
-  
+
   // Show indicator only on small screens
   if (window.innerWidth < 768 || window.innerHeight < 600) {
     indicator.textContent = `Scale: ${Math.round(scale * 100)}%`;
@@ -542,7 +542,14 @@ function drawTileBased(timestamp = 0, deltaTime = 16) {
 
   // Draw character sprites on top
   if (window.drawCharacters) {
-    window.drawCharacters(deltaTime, { x: officeX, y: officeY, w: officeRenderWidth, h: officeRenderHeight, scale: finalScale });
+    // Pass the zoomed width/height so characters scale positions correctly with zoom
+    window.drawCharacters(deltaTime, {
+      x: officeX,
+      y: officeY,
+      w: officeRenderWidth * scale,
+      h: officeRenderHeight * scale,
+      scale: finalScale
+    });
   }
 
   // Time display
@@ -607,32 +614,32 @@ function draw(timestamp = 0, deltaTime = 16) {
   const leftW = w * 0.28;
   const leftY = y + h * 0.05;
   const leftH = h * 0.9;
-  
+
   // Kitchen area
   ctx.fillStyle = COLORS.kitchen;
   ctx.fillRect(leftX, leftY, leftW, leftH * 0.45);
-  
+
   // Lounge area
   ctx.fillStyle = COLORS.lounge;
   ctx.fillRect(leftX, leftY + leftH * 0.45, leftW, leftH * 0.55);
-  
+
   // Kitchen elements - Coffee machine
   ctx.fillStyle = COLORS.coffeeMachine;
   ctx.fillRect(leftX + leftW * 0.1, leftY + leftH * 0.1, leftW * 0.3, leftH * 0.15);
-  
+
   // Kitchen counter
   ctx.fillStyle = '#5a5a7a';
   ctx.fillRect(leftX + leftW * 0.5, leftY + leftH * 0.05, leftW * 0.45, leftH * 0.12);
-  
+
   // Lounge elements - Couches
   ctx.fillStyle = COLORS.couch;
   ctx.fillRect(leftX + leftW * 0.1, leftY + leftH * 0.55, leftW * 0.35, leftH * 0.12);
   ctx.fillRect(leftX + leftW * 0.55, leftY + leftH * 0.55, leftW * 0.35, leftH * 0.12);
-  
+
   // Lounge coffee table
   ctx.fillStyle = '#6a5a4a';
   ctx.fillRect(leftX + leftW * 0.35, leftY + leftH * 0.7, leftW * 0.3, leftH * 0.08);
-  
+
   // Plants
   ctx.fillStyle = COLORS.plant;
   ctx.beginPath();
@@ -641,14 +648,14 @@ function draw(timestamp = 0, deltaTime = 16) {
   ctx.beginPath();
   ctx.arc(leftX + leftW * 0.85, leftY + leftH * 0.42, leftW * 0.06, 0, Math.PI * 2);
   ctx.fill();
-  
+
   // Kitchen/Lounge label
   ctx.fillStyle = '#aaa';
   ctx.font = `${14 * scale}px Arial`;
   ctx.textAlign = 'center';
   ctx.fillText('KITCHEN', leftX + leftW / 2, leftY + leftH * 0.25);
   ctx.fillText('LOUNGE', leftX + leftW / 2, leftY + leftH * 0.7);
-  
+
   // Draw ping pong table in lounge (Phase 7)
   if (window.drawPingPongTable) {
     const tableX = leftX + leftW * 0.55;
@@ -656,11 +663,11 @@ function draw(timestamp = 0, deltaTime = 16) {
     const tableW = leftW * 0.4;
     const tableH = leftH * 0.22;
     window.drawPingPongTable(ctx, tableX, tableY, tableW, tableH, scale);
-    
+
     // Draw active ping pong game if running
     window.drawPingPongGame(ctx, tableX, tableY, tableW, tableH, scale);
   }
-  
+
   // Draw arcade machine in lounge (Phase 7)
   if (window.drawArcadeMachine) {
     const arcadeX = leftX + leftW * 0.08;
@@ -668,21 +675,21 @@ function draw(timestamp = 0, deltaTime = 16) {
     const arcadeW = leftW * 0.2;
     const arcadeH = leftH * 0.25;
     window.drawArcadeMachine(ctx, arcadeX, arcadeY, arcadeW, arcadeH, scale);
-    
+
     // Draw active arcade game if running
     window.drawArcadeScreen(ctx, arcadeX, arcadeY, arcadeW, arcadeH);
   }
-  
+
   // RIGHT SIDE - Desk Area
   const rightX = x + w * 0.7;
   const rightW = w * 0.28;
   const rightY = y + h * 0.05;
   const rightH = h * 0.9;
-  
+
   // Desk area floor
   ctx.fillStyle = COLORS.floorAccent;
   ctx.fillRect(rightX, rightY, rightW, rightH);
-  
+
   // RIGHT TOP - Nova's Corner Office
   const novaX = rightX + rightW * 0.05;
   const novaY = rightY + rightH * 0.03;
@@ -690,13 +697,13 @@ function draw(timestamp = 0, deltaTime = 16) {
   const novaH = rightH * 0.25;
   ctx.fillStyle = COLORS.novaOffice;
   ctx.fillRect(novaX, novaY, novaW, novaH);
-  
+
   // Whiteboard in Nova's office
   drawWhiteboard(novaX, novaY, novaW, novaH);
-  
+
   // Motivational poster
   drawMotivationalPoster(rightX, rightY, rightW, rightH, scale);
-  
+
   // Nova's desk details - monitor
   ctx.fillStyle = '#3a3a5a';
   ctx.fillRect(novaX + novaW * 0.15, novaY + novaH * 0.5, novaW * 0.25, novaH * 0.15);
@@ -711,12 +718,12 @@ function draw(timestamp = 0, deltaTime = 16) {
   ctx.fillStyle = '#000';
   ctx.font = `${8 * scale}px Arial`;
   ctx.fillText('NOVA', novaX + novaW * 0.8, novaY + novaH * 0.9);
-  
+
   ctx.fillStyle = '#fff';
   ctx.font = `${10 * scale}px Arial`;
   ctx.fillText('NOVA', novaX + novaW / 2, novaY + novaH / 2);
   ctx.fillText('OFFICE', novaX + novaW / 2, novaY + novaH / 2 + 14 * scale);
-  
+
   // RIGHT TOP - Delta Station
   const deltaX = rightX + rightW * 0.55;
   const deltaY = rightY + rightH * 0.03;
@@ -724,7 +731,7 @@ function draw(timestamp = 0, deltaTime = 16) {
   const deltaH = rightH * 0.25;
   ctx.fillStyle = COLORS.deltaStation;
   ctx.fillRect(deltaX, deltaY, deltaW, deltaH);
-  
+
   // Delta's desk details - dual monitors
   ctx.fillStyle = '#3a3a5a';
   ctx.fillRect(deltaX + deltaW * 0.1, deltaY + deltaH * 0.45, deltaW * 0.2, deltaH * 0.12);
@@ -741,23 +748,23 @@ function draw(timestamp = 0, deltaTime = 16) {
   ctx.fillStyle = '#000';
   ctx.font = `${8 * scale}px Arial`;
   ctx.fillText('DELTA', deltaX + deltaW * 0.8, deltaY + deltaH * 0.9);
-  
+
   ctx.fillStyle = '#fff';
   ctx.fillText('DELTA', deltaX + deltaW / 2, deltaY + deltaH / 2);
   ctx.fillText('STATION', deltaX + deltaW / 2, deltaY + deltaH / 2 + 14 * scale);
-  
+
   // RIGHT MIDDLE - 3 Zero Pods (Row of 3)
   const podY = rightY + rightH * 0.32;
   const podH = rightH * 0.18;
   const podW = rightW * 0.28;
-  
+
   const podNames = ['ZERO-1', 'ZERO-2', 'ZERO-3'];
   for (let i = 0; i < 3; i++) {
     const podX = rightX + rightW * (0.05 + i * 0.32);
     const currentPodName = podNames[i];
     ctx.fillStyle = COLORS.zeroPod;
     ctx.fillRect(podX, podY, podW, podH);
-    
+
     // Zero pod desk details - monitor
     ctx.fillStyle = '#3a3a5a';
     ctx.fillRect(podX + podW * 0.15, podY + podH * 0.4, podW * 0.25, podH * 0.2);
@@ -772,13 +779,13 @@ function draw(timestamp = 0, deltaTime = 16) {
     ctx.fillStyle = '#000';
     ctx.font = `${7 * scale}px Arial`;
     ctx.fillText(currentPodName, podX + podW * 0.8, podY + podH * 0.87);
-    
+
     ctx.fillStyle = '#fff';
     ctx.font = `${10 * scale}px Arial`;
     ctx.fillText('ZERO', podX + podW / 2, podY + podH / 2);
     ctx.fillText('POD ' + (i + 1), podX + podW / 2, podY + podH / 2 + 12 * scale);
   }
-  
+
   // RIGHT BOTTOM LEFT - Bestie Reception
   const bestieX = rightX + rightW * 0.05;
   const bestieY = rightY + rightH * 0.55;
@@ -786,7 +793,7 @@ function draw(timestamp = 0, deltaTime = 16) {
   const bestieH = rightH * 0.2;
   ctx.fillStyle = COLORS.bestieReception;
   ctx.fillRect(bestieX, bestieY, bestieW, bestieH);
-  
+
   // Bestie reception desk details - computer
   ctx.fillStyle = '#3a3a5a';
   ctx.fillRect(bestieX + bestieW * 0.15, bestieY + bestieH * 0.35, bestieW * 0.25, bestieH * 0.25);
@@ -801,12 +808,12 @@ function draw(timestamp = 0, deltaTime = 16) {
   ctx.fillStyle = '#000';
   ctx.font = `${7 * scale}px Arial`;
   ctx.fillText('WELCOME', bestieX + bestieW * 0.27, bestieY - bestieH * 0.06);
-  
+
   ctx.fillStyle = '#fff';
   ctx.font = `${10 * scale}px Arial`;
   ctx.fillText('BESTIE', bestieX + bestieW / 2, bestieY + bestieH / 2);
   ctx.fillText('RECEPTION', bestieX + bestieW / 2, bestieY + bestieH / 2 + 12 * scale);
-  
+
   // RIGHT BOTTOM RIGHT - Dexter Flex Desk
   const dexterX = rightX + rightW * 0.55;
   const dexterY = rightY + rightH * 0.55;
@@ -814,7 +821,7 @@ function draw(timestamp = 0, deltaTime = 16) {
   const dexterH = rightH * 0.2;
   ctx.fillStyle = COLORS.dexterDesk;
   ctx.fillRect(dexterX, dexterY, dexterW, dexterH);
-  
+
   // Dexter flex desk details - laptop
   ctx.fillStyle = '#3a3a5a';
   ctx.fillRect(dexterX + dexterW * 0.15, dexterY + dexterH * 0.4, dexterW * 0.3, dexterH * 0.2);
@@ -829,17 +836,17 @@ function draw(timestamp = 0, deltaTime = 16) {
   ctx.fillStyle = '#000';
   ctx.font = `${7 * scale}px Arial`;
   ctx.fillText('HOT', dexterX + dexterW * 0.82, dexterY + dexterH * 0.88);
-  
+
   ctx.fillStyle = '#fff';
   ctx.font = `${10 * scale}px Arial`;
   ctx.fillText('DEXTER', dexterX + dexterW / 2, dexterY + dexterH / 2);
   ctx.fillText('FLEX', dexterX + dexterW / 2, dexterY + dexterH / 2 + 12 * scale);
-  
+
   // Meeting pods at bottom
   const meetingY = rightY + rightH * 0.8;
   const meetingW = rightW * 0.28;
   const meetingH = rightH * 0.17;
-  
+
   for (let i = 0; i < 2; i++) {
     const meetingX = rightX + rightW * (0.05 + i * 0.5);
     ctx.fillStyle = '#5a5a7a';
@@ -848,15 +855,15 @@ function draw(timestamp = 0, deltaTime = 16) {
     ctx.fillText('MEETING', meetingX + meetingW / 2, meetingY + meetingH / 2);
     ctx.fillText('ROOM ' + (i + 1), meetingX + meetingW / 2, meetingY + meetingH / 2 + 12 * scale);
   }
-  
+
   // Hallway labels
   ctx.fillStyle = '#777';
   ctx.font = `${12 * scale}px Arial`;
   ctx.fillText('HALLWAY', x + w * 0.5, hallwayY + hallwayH / 2 + 4 * scale);
-  
+
   // Water cooler in hallway/middle area
   drawWaterCooler(x + w * 0.5, hallwayY + hallwayH / 2, scale);
-  
+
   // Arrow indicators in hallway
   ctx.strokeStyle = '#666';
   ctx.lineWidth = 2 * scale;
@@ -868,10 +875,10 @@ function draw(timestamp = 0, deltaTime = 16) {
   ctx.moveTo(x + w * 0.62, hallwayY + hallwayH / 2);
   ctx.lineTo(x + w * 0.57, hallwayY + hallwayH / 2);
   ctx.stroke();
-  
+
   // Draw ambient animations (Phase 4)
   drawAmbientAnimations(timestamp);
-  
+
   // Draw day/night elements (desk lamps only)
   const bounds = getOfficeBounds();
   drawDeskLamps(bounds.x, bounds.y, bounds.w, bounds.h);
@@ -909,7 +916,7 @@ function gameLoop(timestamp) {
 
   // Redraw the office (pass both timestamp and deltaTime for animations)
   draw(timestamp, deltaTime);
-  
+
   // Update and draw visual effects (Phase 4)
   if (window.updateCoffeeSteam) {
     window.updateCoffeeSteam(timestamp);
@@ -917,7 +924,7 @@ function gameLoop(timestamp) {
   if (window.drawCoffeeSteam) {
     window.drawCoffeeSteam();
   }
-  
+
   // Draw typing particles and monitor glow for working characters
   if (window.CHARACTERS) {
     window.CHARACTERS.forEach(character => {
@@ -935,10 +942,10 @@ function gameLoop(timestamp) {
   if (window.drawTypingParticles) {
     window.drawTypingParticles();
   }
-  
+
   // Update and draw speech bubbles
   updateAndDrawSpeechBubbles(timestamp);
-  
+
   // Update and draw office events (Phase 6)
   if (window.updateOfficeEvents) {
     window.updateOfficeEvents(deltaTime);
@@ -946,7 +953,7 @@ function gameLoop(timestamp) {
   if (window.drawOfficeEvents) {
     window.drawOfficeEvents();
   }
-  
+
   // Update and draw visitors (Phase 7)
   if (window.updateVisitors) {
     window.updateVisitors(deltaTime);
@@ -954,7 +961,7 @@ function gameLoop(timestamp) {
   if (window.drawVisitor) {
     window.drawVisitor();
   }
-  
+
   // Update and draw mini-games (Phase 7)
   if (window.updatePingPongGame) {
     window.updatePingPongGame();
@@ -962,7 +969,7 @@ function gameLoop(timestamp) {
   if (window.updateArcadeGame) {
     window.updateArcadeGame();
   }
-  
+
   // Update and draw mood indicators (Phase 5)
   if (window.updateMoods) {
     window.updateMoods(deltaTime);
@@ -970,11 +977,10 @@ function gameLoop(timestamp) {
   if (window.drawMoodIndicators) {
     window.drawMoodIndicators();
   }
-  
-  // Draw achievement trophies and celebrations (Phase 6)
-  drawAchievementTrophies();
+
+
   updateAndDrawCelebrations();
-  
+
   // Note: Demo mode disabled - states now driven by live API polling
   // To re-enable demo: uncomment cycleCharacterStates() call below
   // stateCycleTimer += deltaTime;
@@ -982,23 +988,23 @@ function gameLoop(timestamp) {
   //   stateCycleTimer = 0;
   //   cycleCharacterStates();
   // }
-  
+
   requestAnimationFrame(gameLoop);
 }
 
 // Demo: Cycle characters through states
 function cycleCharacterStates() {
   if (!window.CHARACTERS || !window.CharacterStates) return;
-  
+
   const chars = window.CHARACTERS;
   const states = window.CharacterStates;
-  
+
   chars.forEach((char, index) => {
     // Stagger state changes based on character index
     setTimeout(() => {
       const currentState = char.state;
       let nextState;
-      
+
       // State machine transitions
       switch (currentState) {
         case states.IDLE:
@@ -1015,7 +1021,7 @@ function cycleCharacterStates() {
           nextState = states.IDLE;
           break;
       }
-      
+
       if (window.setCharacterState) {
         window.setCharacterState(char.id, nextState);
       }
@@ -1048,10 +1054,10 @@ const API_TO_CHARACTER_MAP = {
 // Start polling /api/status for live agent updates
 function startStatusPolling() {
   if (statusPollingInterval) return;
-  
+
   // Initial fetch
   fetchAgentStatus();
-  
+
   // Poll every 5 seconds
   statusPollingInterval = setInterval(fetchAgentStatus, 5000);
 }
@@ -1069,7 +1075,7 @@ async function fetchAgentStatus() {
   try {
     const response = await fetch('/api/status');
     const data = await response.json();
-    
+
     if (data.agents && Array.isArray(data.agents)) {
       processAgentStatus(data.agents);
     }
@@ -1081,30 +1087,30 @@ async function fetchAgentStatus() {
 // Process agent status and trigger state transitions
 function processAgentStatus(agents) {
   if (!window.CHARACTERS || !window.CharacterStates) return;
-  
+
   const states = window.CharacterStates;
-  
+
   agents.forEach(agent => {
     const characterId = API_TO_CHARACTER_MAP[agent.id];
     if (!characterId) return;
-    
+
     const character = window.CHARACTERS.find(c => c.id === characterId);
     if (!character) return;
-    
+
     // Get previous state
     const prevState = previousAgentStates.get(characterId);
     const currentState = character.state;
-    
+
     // Update stored task info
     if (agent.currentTask) {
       character.currentTask = agent.currentTask;
     }
-    
+
     // Only react to state CHANGES (not every poll)
     if (prevState !== undefined && prevState !== agent.state) {
       // State changed! Trigger transition
       if (agent.state === 'working' && currentState !== states.WORKING &&
-          currentState !== states.WALKING_TO_DESK) {
+        currentState !== states.WALKING_TO_DESK) {
         // Agent started working - walk to desk
         window.setCharacterState(characterId, states.WALKING_TO_DESK);
         // Show speech bubble for starting task
@@ -1135,7 +1141,7 @@ function processAgentStatus(agents) {
       // Initial state - agent is idle, send to lounge
       window.setCharacterState(characterId, states.WALKING_TO_LOUNGE);
     }
-    
+
     // Store current state for next comparison
     previousAgentStates.set(characterId, agent.state);
   });
@@ -1157,14 +1163,14 @@ function addTimelineEvent(agentName, eventType, taskName = null) {
     eventType: eventType,
     taskName: taskName
   };
-  
+
   timelineEvents.unshift(event);
-  
+
   // Keep only last 20 events
   if (timelineEvents.length > MAX_TIMELINE_EVENTS) {
     timelineEvents.pop();
   }
-  
+
   renderTimeline();
 }
 
@@ -1172,18 +1178,18 @@ function addTimelineEvent(agentName, eventType, taskName = null) {
 function formatEventTime(date) {
   const now = new Date();
   const diff = now - date;
-  
+
   // Less than 1 minute ago
   if (diff < 60000) {
     return 'just now';
   }
-  
+
   // Less than 1 hour ago
   if (diff < 3600000) {
     const mins = Math.floor(diff / 60000);
     return `${mins}m ago`;
   }
-  
+
   // Otherwise show time
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
@@ -1192,19 +1198,19 @@ function formatEventTime(date) {
 function renderTimeline() {
   const container = document.getElementById('timeline-events');
   if (!container) return;
-  
+
   if (timelineEvents.length === 0) {
     container.innerHTML = '<div class="timeline-empty">No activity yet</div>';
     return;
   }
-  
+
   container.innerHTML = timelineEvents.map(event => {
     const typeLabels = {
       'started': 'Started working',
       'completed': 'Completed task',
       'idle': 'Became idle'
     };
-    
+
     return `
       <div class="timeline-event ${event.eventType}">
         <div class="event-header">
@@ -1216,7 +1222,7 @@ function renderTimeline() {
       </div>
     `;
   }).join('');
-  
+
   // Auto-scroll to top (newest)
   container.scrollTop = 0;
 }
@@ -1225,7 +1231,7 @@ function renderTimeline() {
 function setupTimelineToggle() {
   const toggleBtn = document.getElementById('timeline-toggle');
   const panel = document.getElementById('timeline-panel');
-  
+
   if (toggleBtn && panel) {
     toggleBtn.addEventListener('click', () => {
       panel.classList.toggle('collapsed');
@@ -1255,21 +1261,21 @@ function drawAmbientAnimations(timestamp) {
   const seconds = clockTime.getSeconds();
   const minutes = clockTime.getMinutes();
   const hours = clockTime.getHours();
-  
+
   // Second hand angle
   clockAngle = seconds * (Math.PI / 30);
   // Minute hand angle (moves gradually)
   const minuteAngle = minutes * (Math.PI / 30) + seconds / 60 * (Math.PI / 1800);
   // Hour hand angle
   const hourAngle = (hours % 12 + minutes / 60) * (Math.PI / 6);
-  
+
   const { x, y, w, h } = getOfficeBounds();
-  
+
   // Draw clock in hallway
   const clockX = x + w * 0.5;
   const clockY = y + h * 0.12;
   const clockRadius = 18 * scale;
-  
+
   // Clock face
   ctx.fillStyle = '#2a2a3a';
   ctx.beginPath();
@@ -1278,20 +1284,20 @@ function drawAmbientAnimations(timestamp) {
   ctx.strokeStyle = '#6a6a8a';
   ctx.lineWidth = 2 * scale;
   ctx.stroke();
-  
+
   // Clock border
   ctx.strokeStyle = '#aaa';
   ctx.lineWidth = 1 * scale;
   ctx.beginPath();
   ctx.arc(clockX, clockY, clockRadius - 1 * scale, 0, Math.PI * 2);
   ctx.stroke();
-  
+
   // Clock center dot
   ctx.fillStyle = '#ff6b6b';
   ctx.beginPath();
   ctx.arc(clockX, clockY, 2 * scale, 0, Math.PI * 2);
   ctx.fill();
-  
+
   // Hour hand
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = 2.5 * scale;
@@ -1302,7 +1308,7 @@ function drawAmbientAnimations(timestamp) {
     clockY - Math.cos(hourAngle) * (clockRadius * 0.5)
   );
   ctx.stroke();
-  
+
   // Minute hand
   ctx.strokeStyle = '#cccccc';
   ctx.lineWidth = 2 * scale;
@@ -1313,7 +1319,7 @@ function drawAmbientAnimations(timestamp) {
     clockY - Math.cos(minuteAngle) * (clockRadius * 0.7)
   );
   ctx.stroke();
-  
+
   // Second hand (red)
   const secondHandLength = clockRadius - 4 * scale;
   ctx.strokeStyle = '#ff6b6b';
@@ -1325,7 +1331,7 @@ function drawAmbientAnimations(timestamp) {
     clockY - Math.cos(clockAngle) * secondHandLength
   );
   ctx.stroke();
-  
+
   // Clock tick marks
   ctx.strokeStyle = '#666';
   ctx.lineWidth = 1 * scale;
@@ -1338,16 +1344,16 @@ function drawAmbientAnimations(timestamp) {
     ctx.lineTo(clockX + Math.sin(tickAngle) * outerR, clockY - Math.cos(tickAngle) * outerR);
     ctx.stroke();
   }
-  
+
   // Plant swaying (in kitchen area)
   drawSwayingPlants(timestamp);
-  
+
   // Coffee steam animation
   drawCoffeeSteam(timestamp);
-  
+
   // Update water cooler bubbles
   updateWaterCoolerBubbles(timestamp);
-  
+
   // Subtle fluorescent light flicker
   drawLightFlicker(timestamp);
 }
@@ -1355,20 +1361,20 @@ function drawAmbientAnimations(timestamp) {
 // Plant swaying animation
 function drawSwayingPlants(timestamp) {
   const { x, y, w, h } = getOfficeBounds();
-  
+
   // Two plants in kitchen/lounge area
   const plantPositions = [
     { x: x + w * 0.15, y: y + h * 0.42 },
     { x: x + w * 0.85, y: y + h * 0.42 }
   ];
-  
+
   plantPositions.forEach((pos, index) => {
     const swayOffset = Math.sin(timestamp / 1000 + index * Math.PI) * 3 * scale;
-    
+
     // Plant pot
     ctx.fillStyle = '#5a4a3a';
     ctx.fillRect(pos.x - 8 * scale, pos.y, 16 * scale, 10 * scale);
-    
+
     // Plant leaves with sway
     ctx.fillStyle = '#4a7a5a';
     for (let i = 0; i < 5; i++) {
@@ -1403,24 +1409,24 @@ function drawWhiteboard(novaX, novaY, novaW, novaH) {
   const wbY = novaY + novaH * 0.1;
   const wbW = novaW * 0.4;
   const wbH = novaH * 0.45;
-  
+
   // Whiteboard frame
   ctx.fillStyle = '#5a5a6a';
   ctx.fillRect(wbX - 3 * scale, wbY - 3 * scale, wbW + 6 * scale, wbH + 6 * scale);
-  
+
   // Whiteboard surface
   ctx.fillStyle = '#f0f0e8';
   ctx.fillRect(wbX, wbY, wbW, wbH);
-  
+
   // Draw diagram based on Nova's working state
   const isNovaWorking = window.CHARACTERS?.find(c => c.id === 'nova')?.state === 'Working';
-  
+
   if (isNovaWorking) {
     whiteboardProgress = Math.min(1, whiteboardProgress + 0.02);
   } else {
     whiteboardProgress = Math.max(0, whiteboardProgress - 0.01);
   }
-  
+
   if (whiteboardProgress > 0.1) {
     drawWhiteboardDiagram(wbX, wbY, wbW, wbH);
   }
@@ -1434,32 +1440,32 @@ function drawWhiteboardDiagram(wbX, wbY, wbW, wbH) {
   ctx.strokeStyle = diagram.color;
   ctx.fillStyle = diagram.color;
   ctx.lineWidth = 2 * scale;
-  
+
   const padding = wbW * 0.15;
   const innerW = wbW - padding * 2;
   const innerH = wbH - padding * 2;
-  
+
   if (diagram.type === 'flowchart') {
     // Simple flowchart
     const boxW = innerW * 0.35;
     const boxH = innerH * 0.25;
     const startX = wbX + padding;
     const startY = wbY + padding;
-    
+
     // Start box
     ctx.strokeRect(startX, startY + innerH * 0.1, boxW, boxH);
-    ctx.fillText('START', startX + boxW/2, startY + innerH * 0.1 + boxH/2);
-    
+    ctx.fillText('START', startX + boxW / 2, startY + innerH * 0.1 + boxH / 2);
+
     // Arrow
     ctx.beginPath();
-    ctx.moveTo(startX + boxW, startY + innerH * 0.1 + boxH/2);
-    ctx.lineTo(startX + boxW + 15 * scale, startY + innerH * 0.1 + boxH/2);
+    ctx.moveTo(startX + boxW, startY + innerH * 0.1 + boxH / 2);
+    ctx.lineTo(startX + boxW + 15 * scale, startY + innerH * 0.1 + boxH / 2);
     ctx.stroke();
-    
+
     // Process box
     const processX = startX + boxW + 15 * scale;
     ctx.strokeRect(processX, startY + innerH * 0.1, boxW, boxH);
-    
+
     // Decision diamond
     ctx.beginPath();
     ctx.moveTo(processX + boxW + innerW * 0.15, startY + innerH * 0.3);
@@ -1468,7 +1474,7 @@ function drawWhiteboardDiagram(wbX, wbY, wbW, wbH) {
     ctx.lineTo(processX + boxW + innerW * 0.15 - boxH * 0.5, startY + innerH * 0.45);
     ctx.closePath();
     ctx.stroke();
-    
+
   } else if (diagram.type === 'boxes') {
     // Grid of boxes
     const boxSize = innerW * 0.25;
@@ -1481,26 +1487,26 @@ function drawWhiteboardDiagram(wbX, wbY, wbW, wbH) {
         );
       }
     }
-    
+
   } else if (diagram.type === 'circles') {
     // Connected circles
     const centerX = wbX + wbW / 2;
     const centerY = wbY + wbH / 2;
     const radius = innerH * 0.25;
-    
+
     // Three circles in triangle
     const positions = [
       { x: centerX, y: centerY - radius },
       { x: centerX - radius * 0.8, y: centerY + radius * 0.5 },
       { x: centerX + radius * 0.8, y: centerY + radius * 0.5 }
     ];
-    
+
     positions.forEach(pos => {
       ctx.beginPath();
       ctx.arc(pos.x, pos.y, radius * 0.35, 0, Math.PI * 2);
       ctx.stroke();
     });
-    
+
     // Connecting lines
     ctx.beginPath();
     ctx.moveTo(positions[0].x, positions[0].y);
@@ -1509,7 +1515,7 @@ function drawWhiteboardDiagram(wbX, wbY, wbW, wbH) {
     ctx.lineTo(positions[0].x, positions[0].y);
     ctx.stroke();
   }
-  
+
   ctx.restore();
 }
 
@@ -1522,18 +1528,18 @@ function drawMotivationalPoster(rightX, rightY, rightW, rightH, scale) {
   const posterY = rightY + rightH * 0.53;
   const posterW = rightW * 0.2;
   const posterH = rightH * 0.15;
-  
+
   // Poster frame
   ctx.fillStyle = '#3a3a4a';
   ctx.fillRect(posterX - 2 * scale, posterY - 2 * scale, posterW + 4 * scale, posterH + 4 * scale);
-  
+
   // Poster background - gradient
   const gradient = ctx.createLinearGradient(posterX, posterY, posterX, posterY + posterH);
   gradient.addColorStop(0, '#1a1a2e');
   gradient.addColorStop(1, '#2d2d44');
   ctx.fillStyle = gradient;
   ctx.fillRect(posterX, posterY, posterW, posterH);
-  
+
   // Simple geometric design
   ctx.strokeStyle = '#ff6b35';
   ctx.lineWidth = 2 * scale;
@@ -1542,7 +1548,7 @@ function drawMotivationalPoster(rightX, rightY, rightW, rightH, scale) {
   ctx.lineTo(posterX + posterW * 0.5, posterY + posterH * 0.7);
   ctx.lineTo(posterX + posterW * 0.8, posterY + posterH * 0.3);
   ctx.stroke();
-  
+
   // Text - "FOCUS" at bottom
   ctx.fillStyle = '#ffffff';
   ctx.font = `bold ${8 * scale}px Arial`;
@@ -1559,24 +1565,24 @@ function drawWaterCooler(x, y, scale) {
   const wcY = y - 35 * scale;
   const wcW = 25 * scale;
   const wcH = 50 * scale;
-  
+
   // Water cooler base
   ctx.fillStyle = '#4a6a8a';
   ctx.fillRect(wcX, wcY + wcH * 0.35, wcW, wcH * 0.65);
-  
+
   // Water bottle on top
   ctx.fillStyle = '#6a8aff';
   ctx.beginPath();
   ctx.arc(wcX + wcW / 2, wcY + wcH * 0.2, wcW * 0.4, Math.PI, 0);
   ctx.fill();
-  
+
   // Water bottle body
   ctx.fillRect(wcX + wcW * 0.2, wcY + wcH * 0.2, wcW * 0.6, wcH * 0.18);
-  
+
   // Water level (blue)
   ctx.fillStyle = '#4a8aff';
   ctx.fillRect(wcX + wcW * 0.25, wcY + wcH * 0.22, wcW * 0.5, wcH * 0.12);
-  
+
   // Draw bubbles
   ctx.fillStyle = 'rgba(150, 200, 255, 0.7)';
   waterCoolerBubbles.forEach(bubble => {
@@ -1597,23 +1603,23 @@ function updateWaterCoolerBubbles(timestamp) {
       wobble: Math.random() * Math.PI * 2
     });
   }
-  
+
   // Update bubble positions
   const coolerX = canvas.width / 2;
   const coolerY = canvas.height / 2 + 80;
-  
+
   for (let i = waterCoolerBubbles.length - 1; i >= 0; i--) {
     const bubble = waterCoolerBubbles[i];
     bubble.y -= bubble.speed;
     bubble.wobble += 0.1;
     bubble.x = coolerX - 20 + Math.sin(bubble.wobble) * 5;
-    
+
     // Remove bubbles that go off top
     if (bubble.y < coolerY - 35) {
       waterCoolerBubbles.splice(i, 1);
     }
   }
-  
+
   // Limit max bubbles
   while (waterCoolerBubbles.length > 8) {
     waterCoolerBubbles.shift();
@@ -1626,13 +1632,13 @@ function updateWaterCoolerBubbles(timestamp) {
 
 function drawCoffeeSteam(timestamp) {
   const { x, y, w, h } = getOfficeBounds();
-  
+
   // Coffee machine position (kitchen)
   const coffeeX = x + w * 0.05 + w * 0.28 * 0.1;
   const coffeeY = y + h * 0.05 + h * 0.9 * 0.45 * 0.1;
   const coffeeW = w * 0.28 * 0.3;
   const coffeeH = h * 0.9 * 0.45 * 0.15;
-  
+
   // Update steam particles
   if (Math.random() < 0.1) {
     coffeeSteamParticles.push({
@@ -1644,14 +1650,14 @@ function drawCoffeeSteam(timestamp) {
       drift: (Math.random() - 0.5) * 0.5
     });
   }
-  
+
   // Update and draw steam
   coffeeSteamParticles.forEach((particle, index) => {
     particle.y += particle.speedY;
     particle.x += particle.drift;
     particle.alpha -= 0.008;
     particle.size *= 0.98;
-    
+
     if (particle.alpha <= 0 || particle.size < 0.5) {
       coffeeSteamParticles.splice(index, 1);
     } else {
@@ -1661,7 +1667,7 @@ function drawCoffeeSteam(timestamp) {
       ctx.fill();
     }
   });
-  
+
   // Limit particles
   while (coffeeSteamParticles.length > 15) {
     coffeeSteamParticles.shift();
@@ -1685,7 +1691,7 @@ function getOfficeBounds() {
 // Draw desk lamps at each workstation
 function drawDeskLamps(x, y, w, h) {
   const lampsOn = areDeskLampsOn();
-  
+
   // Lamp positions for each desk area
   const lampPositions = [
     // Nova's office lamp
@@ -1701,16 +1707,16 @@ function drawDeskLamps(x, y, w, h) {
     // Dexter desk lamp
     { x: x + w * 0.88, y: y + h * 0.60, scale: 0.8 }
   ];
-  
+
   lampPositions.forEach(lamp => {
     const s = lamp.scale * scale;
-    
+
     // Lamp base
     ctx.fillStyle = '#3a3a4a';
     ctx.beginPath();
     ctx.ellipse(lamp.x, lamp.y + 8 * s, 10 * s, 4 * s, 0, 0, Math.PI * 2);
     ctx.fill();
-    
+
     // Lamp arm
     ctx.strokeStyle = '#4a4a5a';
     ctx.lineWidth = 2 * s;
@@ -1718,7 +1724,7 @@ function drawDeskLamps(x, y, w, h) {
     ctx.moveTo(lamp.x, lamp.y + 8 * s);
     ctx.lineTo(lamp.x, lamp.y - 5 * s);
     ctx.stroke();
-    
+
     // Lamp shade
     ctx.fillStyle = lampsOn ? '#5a4a3a' : '#4a4a5a';
     ctx.beginPath();
@@ -1728,7 +1734,7 @@ function drawDeskLamps(x, y, w, h) {
     ctx.lineTo(lamp.x - 8 * s, lamp.y - 15 * s);
     ctx.closePath();
     ctx.fill();
-    
+
     // Lamp glow when on
     if (lampsOn) {
       // Create radial gradient for lamp glow
@@ -1739,7 +1745,7 @@ function drawDeskLamps(x, y, w, h) {
       gradient.addColorStop(0, 'rgba(255, 220, 150, 0.4)');
       gradient.addColorStop(0.5, 'rgba(255, 200, 100, 0.2)');
       gradient.addColorStop(1, 'rgba(255, 180, 50, 0)');
-      
+
       ctx.fillStyle = gradient;
       ctx.beginPath();
       ctx.arc(lamp.x, lamp.y - 5 * s, 40 * s, 0, Math.PI * 2);
@@ -1760,195 +1766,14 @@ function getMonitorGlowColor() {
 // Click Handler for Task Info
 // ============================================================================
 
-// Achievement badges configuration
-// ============================================================================
-// Achievement System - Phase 6
-// ============================================================================
 
-// Achievement definitions with tiers
-const ACHIEVEMENT_CONFIG = {
-  // Task achievements
-  'first_task': { 
-    label: '🎯 First Task', 
-    color: '#4CAF50', 
-    tier: 'bronze',
-    description: 'Complete your first task'
-  },
-  'streak_master': { 
-    label: '🔥 Streak Master', 
-    color: '#FF9800', 
-    tier: 'gold',
-    description: 'Complete 5 tasks in a row without errors'
-  },
-  'speed_demon': { 
-    label: '⚡ Speed Demon', 
-    color: '#F44336', 
-    tier: 'silver',
-    description: 'Complete a task in under 5 minutes'
-  },
-  
-  // Time-based achievements
-  'night_owl': { 
-    label: '🦉 Night Owl', 
-    color: '#9C27B0', 
-    tier: 'silver',
-    description: 'Work past 10 PM'
-  },
-  'early_bird': { 
-    label: '🌅 Early Bird', 
-    color: '#03A9F4', 
-    tier: 'silver',
-    description: 'Work before 7 AM'
-  },
-  
-  // Social achievements
-  'pizza_lover': { 
-    label: '🍕 Pizza Lover', 
-    color: '#FF5722', 
-    tier: 'gold',
-    description: 'Attend 10 pizza parties'
-  },
-  'code_reviewer': { 
-    label: '📝 Code Reviewer', 
-    color: '#2196F3', 
-    tier: 'gold',
-    description: 'Have 10 PRs reviewed'
-  },
-  
-  // Bug achievements
-  'bug_hunter': { 
-    label: '🐛 Bug Hunter', 
-    color: '#8BC34A', 
-    tier: 'silver',
-    description: 'Fix 5 bugs'
-  }
-};
-
-// Achievement tier colors
-const TIER_COLORS = {
-  bronze: '#CD7F32',
-  silver: '#C0C0C0',
-  gold: '#FFD700'
-};
-
-// Achievement state
-const achievementState = {
-  earned: [],           // List of earned achievement IDs
-  stats: {
-    tasksCompleted: 0,
-    errors: 0,
-    consecutiveTasks: 0,
-    prsReviewed: 0,
-    bugsFixed: 0,
-    pizzaParties: 0,
-    timeWorkedToday: 0,
-    fastestTaskTime: Infinity
-  },
-  recentEarnings: []    // Recently earned for animation
-};
 
 // Trophy sprite drawing
-function drawTrophy(x, y, size, tier, glowIntensity = 0) {
-  const tierColor = TIER_COLORS[tier] || TIER_COLORS.bronze;
-  
-  // Glow effect when earned recently
-  if (glowIntensity > 0) {
-    const gradient = ctx.createRadialGradient(x, y, 0, x, y, size * 2);
-    gradient.addColorStop(0, `${tierColor}${Math.floor(glowIntensity * 99).toString(16).padStart(2, '0')}`);
-    gradient.addColorStop(1, 'transparent');
-    ctx.fillStyle = gradient;
-    ctx.beginPath();
-    ctx.arc(x, y, size * 2, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  
-  // Trophy base
-  ctx.fillStyle = tierColor;
-  ctx.beginPath();
-  ctx.moveTo(x - size * 0.4, y + size * 0.3);
-  ctx.lineTo(x + size * 0.4, y + size * 0.3);
-  ctx.lineTo(x + size * 0.5, y + size * 0.5);
-  ctx.lineTo(x - size * 0.5, y + size * 0.5);
-  ctx.closePath();
-  ctx.fill();
-  
-  // Trophy cup
-  ctx.beginPath();
-  ctx.moveTo(x - size * 0.35, y + size * 0.3);
-  ctx.lineTo(x - size * 0.25, y - size * 0.2);
-  ctx.quadraticCurveTo(x, y - size * 0.5, x + size * 0.25, y - size * 0.2);
-  ctx.lineTo(x + size * 0.35, y + size * 0.3);
-  ctx.closePath();
-  ctx.fill();
-  
-  // Trophy handles
-  ctx.strokeStyle = tierColor;
-  ctx.lineWidth = size * 0.15;
-  ctx.beginPath();
-  ctx.arc(x - size * 0.35, y - size * 0.05, size * 0.2, Math.PI * 0.5, Math.PI * 1.5);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(x + size * 0.35, y - size * 0.05, size * 0.2, -Math.PI * 0.5, Math.PI * 0.5);
-  ctx.stroke();
-  
-  // Star on top
-  ctx.fillStyle = '#FFF';
-  drawStar(x, y - size * 0.35, size * 0.15, 5);
-}
 
-function drawStar(cx, cy, outerRadius, points) {
-  ctx.beginPath();
-  for (let i = 0; i < points * 2; i++) {
-    const radius = i % 2 === 0 ? outerRadius : outerRadius * 0.4;
-    const angle = (i * Math.PI) / points - Math.PI / 2;
-    const x = cx + Math.cos(angle) * radius;
-    const y = cy + Math.sin(angle) * radius;
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  }
-  ctx.closePath();
-  ctx.fill();
-}
-
-// Draw trophies above desks for characters with achievements
-function drawAchievementTrophies() {
-  if (!window.CHARACTERS) return;
-  
-  const { x, y, w, h } = getOfficeBounds();
-  
-  // Character to desk position mapping
-  const deskPositions = {
-    'nova': { x: x + w * 0.73, y: y + h * 0.17 },
-    'zero1': { x: x + w * 0.74, y: y + h * 0.38 },
-    'zero2': { x: x + w * 0.82, y: y + h * 0.38 },
-    'zero3': { x: x + w * 0.90, y: y + h * 0.38 },
-    'delta': { x: x + w * 0.88, y: y + h * 0.10 },
-    'bestie': { x: x + w * 0.74, y: y + h * 0.60 },
-    'dexter': { x: x + w * 0.88, y: y + h * 0.60 }
-  };
-  
-  // Get current glow intensity based on recent earnings
-  const now = Date.now();
-  const glowDuration = 3000; // 3 seconds of glow
-  
-  achievementState.recentEarnings.forEach(earned => {
-    const age = now - earned.timestamp;
-    if (age < glowDuration) {
-      const intensity = 1 - (age / glowDuration);
-      
-      // Draw trophy above the character's desk
-      const charId = earned.characterId || 'nova';
-      const pos = deskPositions[charId];
-      if (pos) {
-        drawTrophy(pos.x, pos.y - 50 * scale, 12 * scale, earned.tier, intensity);
-      }
-    }
-  });
-}
 
 function spawnCelebration(x, y) {
   const colors = ['#FFD700', '#FF6B6B', '#4CAF50', '#2196F3', '#9C27B0', '#FF9800'];
-  
+
   for (let i = 0; i < 30; i++) {
     celebrationParticles.push({
       x: x,
@@ -1969,255 +1794,55 @@ function updateAndDrawCelebrations() {
     p.y += p.vy;
     p.vy += 0.3; // gravity
     p.life -= 0.02;
-    
+
     if (p.life <= 0) {
       celebrationParticles.splice(i, 1);
     }
   });
-  
+
   // Draw particles
   celebrationParticles.forEach(p => {
     ctx.globalAlpha = p.life;
     ctx.fillStyle = p.color;
-    ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
+    ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
   });
   ctx.globalAlpha = 1;
 }
 
 // Check and award achievements
-function checkAchievements(characterId = 'nova') {
-  const stats = achievementState.stats;
-  const newEarnings = [];
-  
-  // First Task
-  if (!achievementState.earned.includes('first_task') && stats.tasksCompleted >= 1) {
-    newEarnings.push({ id: 'first_task', characterId });
-  }
-  
-  // Streak Master (5 consecutive tasks)
-  if (!achievementState.earned.includes('streak_master') && stats.consecutiveTasks >= 5) {
-    newEarnings.push({ id: 'streak_master', characterId });
-  }
-  
-  // Speed Demon (under 5 minutes = 300 seconds)
-  if (!achievementState.earned.includes('speed_demon') && stats.fastestTaskTime < 300) {
-    newEarnings.push({ id: 'speed_demon', characterId });
-  }
-  
-  // Night Owl (after 10 PM = hour >= 22)
-  const currentHour = getCurrentHour();
-  if (!achievementState.earned.includes('night_owl') && currentHour >= 22) {
-    newEarnings.push({ id: 'night_owl', characterId });
-  }
-  
-  // Early Bird (before 7 AM = hour < 7)
-  if (!achievementState.earned.includes('early_bird') && currentHour < 7) {
-    newEarnings.push({ id: 'early_bird', characterId });
-  }
-  
-  // Pizza Lover
-  if (!achievementState.earned.includes('pizza_lover') && stats.pizzaParties >= 10) {
-    newEarnings.push({ id: 'pizza_lover', characterId });
-  }
-  
-  // Code Reviewer
-  if (!achievementState.earned.includes('code_reviewer') && stats.prsReviewed >= 10) {
-    newEarnings.push({ id: 'code_reviewer', characterId });
-  }
-  
-  // Bug Hunter
-  if (!achievementState.earned.includes('bug_hunter') && stats.bugsFixed >= 5) {
-    newEarnings.push({ id: 'bug_hunter', characterId });
-  }
-  
-  // Award new achievements
-  newEarnings.forEach(earned => {
-    achievementState.earned.push(earned.id);
-    earned.timestamp = Date.now();
-    earned.tier = ACHIEVEMENT_CONFIG[earned.id].tier;
-    achievementState.recentEarnings.push(earned);
-    
-    // Console log sound effect placeholder
-    console.log(`🔔 Achievement earned: ${ACHIEVEMENT_CONFIG[earned.id].label}`);
-    
-    // Trigger celebration
-    const { x, y, w, h } = getOfficeBounds();
-    spawnCelebration(x + w * 0.5, y + h * 0.5);
-    
-    // Show notification
-    showAchievementNotification(earned.id);
-  });
-  
-  // Clean up old recent earnings (keep last 10)
-  if (achievementState.recentEarnings.length > 10) {
-    achievementState.recentEarnings = achievementState.recentEarnings.slice(-10);
-  }
-}
+
 
 // Achievement notification
-function showAchievementNotification(achievementId) {
-  const config = ACHIEVEMENT_CONFIG[achievementId];
-  if (!config) return;
-  
-  const notification = document.createElement('div');
-  notification.style.cssText = `
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) scale(0);
-    background: linear-gradient(135deg, ${config.color}22, ${config.color}44);
-    border: 2px solid ${config.color};
-    border-radius: 16px;
-    padding: 20px 40px;
-    color: #fff;
-    font-family: 'Segoe UI', Arial, sans-serif;
-    text-align: center;
-    z-index: 2000;
-    box-shadow: 0 0 40px ${config.color}66;
-    transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-  `;
-  
-  notification.innerHTML = `
-    <div style="font-size: 48px; margin-bottom: 10px;">🏆</div>
-    <div style="font-size: 14px; color: #aaa; text-transform: uppercase; letter-spacing: 2px;">Achievement Unlocked!</div>
-    <div style="font-size: 24px; font-weight: bold; color: ${config.color}; margin: 10px 0;">${config.label}</div>
-    <div style="font-size: 12px; color: #888;">${config.description}</div>
-  `;
-  
-  document.body.appendChild(notification);
-  
-  // Animate in
-  setTimeout(() => {
-    notification.style.transform = 'translate(-50%, -50%) scale(1)';
-  }, 10);
-  
-  // Remove after 3 seconds
-  setTimeout(() => {
-    notification.style.transform = 'translate(-50%, -50%) scale(0)';
-    setTimeout(() => notification.remove(), 300);
-  }, 3000);
-}
+
 
 // Create Trophy Case Panel
-function createTrophyCasePanel() {
-  const panel = document.createElement('div');
-  panel.id = 'trophy-case-panel';
-  panel.style.cssText = `
-    position: fixed;
-    bottom: 20px;
-    left: 20px;
-    background: rgba(30, 30, 50, 0.95);
-    border: 2px solid #6a6a8a;
-    border-radius: 12px;
-    padding: 16px;
-    color: #fff;
-    font-family: 'Segoe UI', Arial, sans-serif;
-    width: 280px;
-    z-index: 900;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-    display: none;
-  `;
-  
-  panel.innerHTML = `
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-      <h3 style="margin: 0; color: #FFD700; font-size: 16px;">🏆 Trophy Case</h3>
-      <button id="trophy-case-close" style="
-        background: none;
-        border: none;
-        color: #888;
-        font-size: 20px;
-        cursor: pointer;
-        padding: 0 4px;
-      ">×</button>
-    </div>
-    <div id="trophy-case-content" style="display: flex; flex-wrap: wrap; gap: 8px; max-height: 200px; overflow-y: auto;">
-      <span style="color: #666; font-size: 12px;">No achievements yet</span>
-    </div>
-  `;
-  
-  document.body.appendChild(panel);
-  
-  document.getElementById('trophy-case-close').addEventListener('click', () => {
-    panel.style.display = 'none';
-  });
-  
-  return panel;
-}
 
-function updateTrophyCase() {
-  const content = document.getElementById('trophy-case-content');
-  if (!content) return;
-  
-  if (achievementState.earned.length === 0) {
-    content.innerHTML = '<span style="color: #666; font-size: 12px;">No achievements yet</span>';
-    return;
-  }
-  
-  content.innerHTML = achievementState.earned.map(achId => {
-    const config = ACHIEVEMENT_CONFIG[achId];
-    if (!config) return '';
-    const tierColor = TIER_COLORS[config.tier];
-    return `
-      <div style="
-        background: ${config.color}22;
-        border: 1px solid ${config.color};
-        border-radius: 8px;
-        padding: 8px;
-        text-align: center;
-        min-width: 60px;
-      ">
-        <div style="font-size: 20px;">🏆</div>
-        <div style="font-size: 10px; color: ${config.color}; font-weight: bold;">${config.label}</div>
-        <div style="font-size: 9px; color: ${tierColor};">${config.tier.toUpperCase()}</div>
-      </div>
-    `;
-  }).join('');
-}
-
-function showTrophyCase() {
-  const panel = document.getElementById('trophy-case-panel');
-  if (!panel) return;
-  updateTrophyCase();
-  panel.style.display = 'block';
-}
 
 // Helper functions for external code to update stats
-window.awardTaskComplete = function(taskTimeSeconds) {
-  achievementState.stats.tasksCompleted++;
-  achievementState.stats.consecutiveTasks++;
-  if (taskTimeSeconds !== undefined && taskTimeSeconds < achievementState.stats.fastestTaskTime) {
-    achievementState.stats.fastestTaskTime = taskTimeSeconds;
-  }
-  checkAchievements();
+window.awardTaskComplete = function (taskTimeSeconds) {
   // Update productivity dashboard
   if (window.updateProductivityStats) {
     window.updateProductivityStats();
   }
 };
 
-window.awardError = function() {
-  achievementState.stats.errors++;
-  achievementState.stats.consecutiveTasks = 0;
+window.awardError = function () {
+  // Error handling logic if any
 };
 
-window.awardBugFix = function() {
-  achievementState.stats.bugsFixed++;
-  checkAchievements();
+window.awardBugFix = function () {
+  // Bug fix logic if any
 };
 
-window.awardPRReview = function() {
-  achievementState.stats.prsReviewed++;
-  checkAchievements();
+window.awardPRReview = function () {
+  // PR review logic if any
 };
 
-window.awardPizzaParty = function() {
-  achievementState.stats.pizzaParties++;
-  checkAchievements();
+window.awardPizzaParty = function () {
+  // Pizza party logic if any
 };
 
-window.getAchievementState = function() {
-  return achievementState;
-};
+
 
 // Initialize achievement UI
 let trophyCasePanel = null;
@@ -2244,7 +1869,7 @@ function createInfoOverlay() {
     box-shadow: -4px 0 30px rgba(0, 0, 0, 0.6);
     transition: right 0.3s ease-out;
   `;
-  
+
   overlay.innerHTML = `
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
       <h2 id="overlay-agent-name" style="margin: 0; color: #ff6b9d; font-size: 22px;">Agent</h2>
@@ -2298,13 +1923,7 @@ function createInfoOverlay() {
       </div>
     </div>
     
-    <!-- Achievement Badges -->
-    <div style="margin-bottom: 16px;">
-      <div style="color: #888; font-size: 12px; margin-bottom: 8px; text-transform: uppercase;">Achievements</div>
-      <div id="overlay-achievements" style="display: flex; flex-wrap: wrap; gap: 6px;">
-        <span style="color: #666; font-size: 12px;">No achievements yet</span>
-      </div>
-    </div>
+
     
     <!-- Progress Bars -->
     <div style="margin-bottom: 16px;">
@@ -2335,14 +1954,14 @@ function createInfoOverlay() {
       <span id="overlay-last-active" style="color: #888; font-size: 11px;">-</span>
     </div>
   `;
-  
+
   document.body.appendChild(overlay);
-  
+
   // Close button handler
   document.getElementById('overlay-close').addEventListener('click', () => {
     closeStatsPanel();
   });
-  
+
   return overlay;
 }
 
@@ -2389,49 +2008,49 @@ async function handleCanvasClick(event) {
   const rect = canvas.getBoundingClientRect();
   const clickX = (event.clientX - rect.left) / rect.width;
   const clickY = (event.clientY - rect.top) / rect.height;
-  
+
   if (!window.CHARACTERS) return;
-  
+
   // Find clicked character (within 50px radius)
   const clickRadius = 0.04; // fraction of canvas
-  
+
   let clickedCharacter = null;
   let minDist = clickRadius;
-  
+
   window.CHARACTERS.forEach(character => {
     const dx = clickX - character.offsetX;
     const dy = clickY - character.offsetY;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    
+
     if (dist < minDist) {
       minDist = dist;
       clickedCharacter = character;
     }
   });
-  
+
   if (!infoOverlay) {
     infoOverlay = createInfoOverlay();
   }
-  
+
   if (clickedCharacter) {
     // Update basic info
     document.getElementById('overlay-agent-name').textContent = clickedCharacter.name;
     document.getElementById('overlay-agent-name').style.color = clickedCharacter.baseColor || '#ff6b9d';
-    
+
     const stateText = clickedCharacter.state || 'idle';
     document.getElementById('overlay-agent-state').textContent = stateText;
-    
+
     // Show task info if available
     const taskContainer = document.getElementById('overlay-task-container');
     const taskText = clickedCharacter.currentTask || 'No active task';
-    
+
     if (stateText === 'working' || stateText === 'walking_to_desk') {
       taskContainer.style.display = 'block';
       document.getElementById('overlay-agent-task').textContent = taskText;
     } else {
       taskContainer.style.display = 'none';
     }
-    
+
     // Show last active time if available
     const lastActiveEl = document.getElementById('overlay-last-active');
     if (clickedCharacter.lastActive) {
@@ -2440,56 +2059,39 @@ async function handleCanvasClick(event) {
     } else {
       lastActiveEl.textContent = '-';
     }
-    
+
     // Fetch and display stats from API
     const apiAgentId = CHARACTER_TO_API_ID[clickedCharacter.name];
     if (apiAgentId) {
       try {
         const response = await fetch(`/api/stats?agentId=${apiAgentId}`);
         const data = await response.json();
-        
+
         if (data.stats) {
           const stats = data.stats;
-          
+
           // Update stats grid
           document.getElementById('overlay-tasks-completed').textContent = stats.tasksCompleted || 0;
           document.getElementById('overlay-current-streak').textContent = stats.currentStreak || 0;
-          
+
           // Format time worked
           const timeWorked = stats.timeWorkedToday || 0;
-          const timeText = timeWorked >= 3600 
-            ? `${Math.floor(timeWorked/3600)}h ${Math.floor((timeWorked%3600)/60)}m`
-            : `${Math.floor(timeWorked/60)}m`;
+          const timeText = timeWorked >= 3600
+            ? `${Math.floor(timeWorked / 3600)}h ${Math.floor((timeWorked % 3600) / 60)}m`
+            : `${Math.floor(timeWorked / 60)}m`;
           document.getElementById('overlay-time-worked').textContent = timeText;
-          
+
           // Favorite activity
           document.getElementById('overlay-favorite').textContent = stats.favoriteActivity || '-';
-          
-          // Update achievements
-          const achievementsEl = document.getElementById('overlay-achievements');
-          if (stats.achievements && stats.achievements.length > 0) {
-            achievementsEl.innerHTML = stats.achievements.map(ach => {
-              const config = ACHIEVEMENT_CONFIG[ach] || { label: ach, color: '#888' };
-              return `<span style="
-                background: ${config.color}33;
-                border: 1px solid ${config.color};
-                color: ${config.color};
-                padding: 4px 8px;
-                border-radius: 12px;
-                font-size: 11px;
-                font-weight: bold;
-              ">${config.label}</span>`;
-            }).join('');
-          } else {
-            achievementsEl.innerHTML = '<span style="color: #666; font-size: 12px;">No achievements yet</span>';
-          }
-          
+
+
+
           // Update progress bars
           const dailyGoal = 5;
           const weeklyGoal = 25;
           const dailyPercent = Math.min((stats.tasksCompleted / dailyGoal) * 100, 100);
           const weeklyPercent = Math.min((stats.tasksCompleted / weeklyGoal) * 100, 100);
-          
+
           document.getElementById('overlay-daily-progress').style.width = dailyPercent + '%';
           document.getElementById('overlay-daily-progress-text').textContent = `${stats.tasksCompleted}/${dailyGoal}`;
           document.getElementById('overlay-weekly-progress').style.width = weeklyPercent + '%';
@@ -2505,7 +2107,7 @@ async function handleCanvasClick(event) {
         document.getElementById('overlay-achievements').innerHTML = '<span style="color: #666; font-size: 12px;">Stats unavailable</span>';
       }
     }
-    
+
     // Show the panel with animation
     showStatsPanel();
   } else {
@@ -2535,7 +2137,7 @@ const productivityState = {
 };
 
 // Update productivity stats (declared early to avoid TDZ)
-window.updateProductivityStats = function() {
+window.updateProductivityStats = function () {
   // Get task count from achievement state
   const tasksCompleted = achievementState?.stats?.tasksCompleted || 0;
 
@@ -2595,14 +2197,14 @@ setupProductivityDashboard();
 function setupProductivityDashboard() {
   const toggleBtn = document.getElementById('productivity-toggle');
   const panel = document.getElementById('productivity-panel');
-  
+
   if (toggleBtn && panel) {
     toggleBtn.addEventListener('click', () => {
       panel.classList.toggle('collapsed');
       toggleBtn.textContent = panel.classList.contains('collapsed') ? '▶' : '◀';
     });
   }
-  
+
   // Initialize heatmap grid
   initHeatmapGrid();
 
@@ -2617,7 +2219,7 @@ function setupProductivityDashboard() {
 function initHeatmapGrid() {
   const grid = document.getElementById('heatmap-grid');
   if (!grid) return;
-  
+
   grid.innerHTML = '';
   for (let i = 0; i < 7; i++) {
     const cell = document.createElement('div');
@@ -2633,7 +2235,7 @@ function initHeatmapGrid() {
 // Update heatmap based on current agent positions
 function updateHeatmapFromAgents() {
   if (!window.CHARACTERS || !window.CharacterStates) return;
-  
+
   // Map characters to their desk indices based on their position
   const deskMap = {
     'nova': 0,
@@ -2644,10 +2246,10 @@ function updateHeatmapFromAgents() {
     'delta': 5,
     'echo': 6
   };
-  
+
   // Count agent desk usage from CHARACTERS - who's at their desk (WORKING state)
   const heatmap = Array(7).fill(0);
-  
+
   window.CHARACTERS.forEach(character => {
     if (character.state === CharacterStates.WORKING) {
       const deskIndex = deskMap[character.id];
@@ -2656,7 +2258,7 @@ function updateHeatmapFromAgents() {
       }
     }
   });
-  
+
   // Update heatmap cells (only show first 7 for actual desks)
   const maxUsage = 1;
   for (let i = 0; i < 7; i++) {
@@ -2676,7 +2278,7 @@ function updateHeatmapFromAgents() {
 function updateLeaderboard() {
   const leaderboardEl = document.getElementById('leaderboard-list');
   if (!leaderboardEl) return;
-  
+
   // Build leaderboard from CHARACTERS - use mood.tasksCompleted
   let agents = [];
   if (window.CHARACTERS) {
@@ -2685,18 +2287,18 @@ function updateLeaderboard() {
       tasksCompleted: character.mood?.tasksCompleted || 0
     }));
   }
-  
+
   // Sort by tasks completed (descending)
   agents.sort((a, b) => b.tasksCompleted - a.tasksCompleted);
-  
+
   // Take top 5
   const top5 = agents.slice(0, 5);
-  
+
   if (top5.length === 0) {
     leaderboardEl.innerHTML = '<div style="color: #606080; text-align: center; padding: 10px;">No data yet</div>';
     return;
   }
-  
+
   const rankClasses = ['gold', 'silver', 'bronze'];
   leaderboardEl.innerHTML = top5.map((agent, index) => `
     <div class="leaderboard-item">
@@ -2747,7 +2349,7 @@ if (window.startVisitorEvents) {
 }
 
 // Add touch handler for mobile
-document.getElementById('office').addEventListener('touchstart', function(event) {
+document.getElementById('office').addEventListener('touchstart', function (event) {
   event.preventDefault();
   const touch = event.touches[0];
   handleCanvasClick({
