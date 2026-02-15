@@ -328,12 +328,13 @@ function gameLoop(timestamp) {
     window.drawCharacters(deltaTime);
   }
   
-  // Cycle character states every 5 seconds (demo mode)
-  stateCycleTimer += deltaTime;
-  if (stateCycleTimer >= STATE_CYCLE_INTERVAL) {
-    stateCycleTimer = 0;
-    cycleCharacterStates();
-  }
+  // Note: Demo mode disabled - states now driven by live API polling
+  // To re-enable demo: uncomment cycleCharacterStates() call below
+  // stateCycleTimer += deltaTime;
+  // if (stateCycleTimer >= STATE_CYCLE_INTERVAL) {
+  //   stateCycleTimer = 0;
+  //   cycleCharacterStates();
+  // }
   
   requestAnimationFrame(gameLoop);
 }
@@ -377,3 +378,222 @@ function cycleCharacterStates() {
 
 // Start the animation loop
 requestAnimationFrame(gameLoop);
+
+// ============================================================================
+// Live Status Polling - Phase 3
+// ============================================================================
+
+let statusPollingInterval = null;
+let previousAgentStates = new Map();
+
+// Map API agent IDs to character IDs
+const API_TO_CHARACTER_MAP = {
+  'nova': 'nova',
+  'zero': 'zero1',
+  'zero-2': 'zero2',
+  'zero-3': 'zero3',
+  'delta': 'delta',
+  'bestie': 'bestie',
+  'dexter': 'dexter'
+};
+
+// Start polling /api/status for live agent updates
+function startStatusPolling() {
+  if (statusPollingInterval) return;
+  
+  // Initial fetch
+  fetchAgentStatus();
+  
+  // Poll every 5 seconds
+  statusPollingInterval = setInterval(fetchAgentStatus, 5000);
+}
+
+// Stop polling
+function stopStatusPolling() {
+  if (statusPollingInterval) {
+    clearInterval(statusPollingInterval);
+    statusPollingInterval = null;
+  }
+}
+
+// Fetch agent status from API
+async function fetchAgentStatus() {
+  try {
+    const response = await fetch('/api/status');
+    const data = await response.json();
+    
+    if (data.agents && Array.isArray(data.agents)) {
+      processAgentStatus(data.agents);
+    }
+  } catch (err) {
+    console.error('Failed to fetch agent status:', err.message);
+  }
+}
+
+// Process agent status and trigger state transitions
+function processAgentStatus(agents) {
+  if (!window.CHARACTERS || !window.CharacterStates) return;
+  
+  const states = window.CharacterStates;
+  
+  agents.forEach(agent => {
+    const characterId = API_TO_CHARACTER_MAP[agent.id];
+    if (!characterId) return;
+    
+    const character = window.CHARACTERS.find(c => c.id === characterId);
+    if (!character) return;
+    
+    // Get previous state
+    const prevState = previousAgentStates.get(characterId);
+    const currentState = character.state;
+    
+    // Update stored task info
+    if (agent.currentTask) {
+      character.currentTask = agent.currentTask;
+    }
+    
+    // Only react to state CHANGES (not every poll)
+    if (prevState !== undefined && prevState !== agent.state) {
+      // State changed! Trigger transition
+      if (agent.state === 'working' && currentState !== states.WORKING && 
+          currentState !== states.WALKING_TO_DESK) {
+        // Agent started working - walk to desk
+        window.setCharacterState(characterId, states.WALKING_TO_DESK);
+      } else if (agent.state === 'idle' && currentState === states.WORKING) {
+        // Agent stopped working - walk back to lounge
+        window.setCharacterState(characterId, states.WALKING_TO_LOUNGE);
+      }
+    }
+    
+    // Store current state for next comparison
+    previousAgentStates.set(characterId, agent.state);
+  });
+}
+
+// ============================================================================
+// Click Handler for Task Info
+// ============================================================================
+
+// Create info overlay element
+function createInfoOverlay() {
+  const overlay = document.createElement('div');
+  overlay.id = 'agent-info-overlay';
+  overlay.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(30, 30, 50, 0.95);
+    border: 2px solid #6a6a8a;
+    border-radius: 8px;
+    padding: 16px;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    min-width: 250px;
+    max-width: 350px;
+    display: none;
+    z-index: 1000;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  `;
+  
+  overlay.innerHTML = `
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+      <h3 id="overlay-agent-name" style="margin: 0; color: #ff6b9d;">Agent</h3>
+      <button id="overlay-close" style="
+        background: transparent;
+        border: none;
+        color: #aaa;
+        font-size: 20px;
+        cursor: pointer;
+        padding: 0 4px;
+      ">×</button>
+    </div>
+    <div style="margin-bottom: 8px;">
+      <span style="color: #888;">Status:</span>
+      <span id="overlay-agent-state" style="color: #88ff88; margin-left: 8px;">idle</span>
+    </div>
+    <div id="overlay-task-container" style="display: none;">
+      <div style="color: #888; margin-bottom: 4px;">Current Task:</div>
+      <div id="overlay-agent-task" style="
+        background: rgba(100, 100, 150, 0.3);
+        padding: 8px;
+        border-radius: 4px;
+        font-size: 13px;
+        word-wrap: break-word;
+      "></div>
+    </div>
+  `;
+  
+  document.body.appendChild(overlay);
+  
+  // Close button handler
+  document.getElementById('overlay-close').addEventListener('click', () => {
+    overlay.style.display = 'none';
+  });
+  
+  return overlay;
+}
+
+let infoOverlay = null;
+
+// Handle canvas clicks to show agent info
+function handleCanvasClick(event) {
+  const canvas = document.getElementById('office');
+  const rect = canvas.getBoundingClientRect();
+  const clickX = (event.clientX - rect.left) / rect.width;
+  const clickY = (event.clientY - rect.top) / rect.height;
+  
+  if (!window.CHARACTERS) return;
+  
+  // Find clicked character (within 50px radius)
+  const clickRadius = 0.04; // fraction of canvas
+  
+  let clickedCharacter = null;
+  let minDist = clickRadius;
+  
+  window.CHARACTERS.forEach(character => {
+    const dx = clickX - character.offsetX;
+    const dy = clickY - character.offsetY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    
+    if (dist < minDist) {
+      minDist = dist;
+      clickedCharacter = character;
+    }
+  });
+  
+  if (!infoOverlay) {
+    infoOverlay = createInfoOverlay();
+  }
+  
+  const overlay = infoOverlay;
+  
+  if (clickedCharacter) {
+    // Update overlay content
+    document.getElementById('overlay-agent-name').textContent = clickedCharacter.name;
+    document.getElementById('overlay-agent-name').style.color = clickedCharacter.baseColor || '#ff6b9d';
+    
+    const stateText = clickedCharacter.state || 'idle';
+    document.getElementById('overlay-agent-state').textContent = stateText;
+    
+    // Show task info if available
+    const taskContainer = document.getElementById('overlay-task-container');
+    const taskText = clickedCharacter.currentTask || 'No active task';
+    
+    if (stateText === 'working' || stateText === 'walking_to_desk') {
+      taskContainer.style.display = 'block';
+      document.getElementById('overlay-agent-task').textContent = taskText;
+    } else {
+      taskContainer.style.display = 'none';
+    }
+    
+    overlay.style.display = 'block';
+  } else {
+    overlay.style.display = 'none';
+  }
+}
+
+// Start live status polling (Phase 3)
+startStatusPolling();
+
+// Add click handler for agent info
+document.getElementById('office').addEventListener('click', handleCanvasClick);
