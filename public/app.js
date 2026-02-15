@@ -395,23 +395,25 @@ const COLORS = {
 // Set canvas size to full window with HiDPI support
 function resizeCanvas() {
   const dpr = window.devicePixelRatio || 1;
-  
+
   canvas.width = window.innerWidth * dpr;
   canvas.height = window.innerHeight * dpr;
   canvas.style.width = window.innerWidth + 'px';
   canvas.style.height = window.innerHeight + 'px';
-  
+
   ctx.scale(dpr, dpr);
-  
+
   // Calculate scale based on window size
   scale = Math.min(canvas.width / MIN_WIDTH / dpr, canvas.height / MIN_HEIGHT / dpr);
-  
+
   // Enforce min/max scale constraints
   const MIN_SCALE = 0.4;
   const MAX_SCALE = 1.5;
   scale = Math.max(MIN_SCALE, Math.min(scale, MAX_SCALE));
-  
+
   window.scale = scale;
+
+  console.log('resizeCanvas:', { width: canvas.width, height: canvas.height, dpr, scale, MIN_WIDTH, MIN_HEIGHT });
   
   // Update scale indicator if exists
   updateScaleIndicator();
@@ -462,6 +464,8 @@ function draw(timestamp = 0) {
   const h = MIN_HEIGHT * scale;
   const x = cx - w / 2;
   const y = cy - h / 2;
+
+  console.log('draw:', { cx, cy, w, h, x, y, scale });
   
   // Clear canvas
   ctx.fillStyle = COLORS.floor;
