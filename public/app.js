@@ -2472,6 +2472,56 @@ const productivityState = {
   totalAgents: 8
 };
 
+// Update productivity stats (moved before setupProductivityDashboard to fix TDZ)
+window.updateProductivityStats = function() {
+  // Get task count from achievement state
+  const tasksCompleted = achievementState?.stats?.tasksCompleted || 0;
+
+  // Update tasks completed
+  const tasksEl = document.getElementById('prod-tasks-completed');
+  if (tasksEl) {
+    tasksEl.textContent = tasksCompleted;
+  }
+
+  // Update tasks subtext with goal progress
+  const tasksSubEl = document.getElementById('prod-tasks-subtext');
+  if (tasksSubEl) {
+    const dailyGoal = 5;
+    const progress = Math.min((tasksCompleted / dailyGoal) * 100, 100);
+    tasksSubEl.textContent = `Goal: ${dailyGoal} tasks (${Math.round(progress)}%)`;
+  }
+
+  // Count active agents (agents with currentTask from CHARACTERS)
+  let activeAgents = 0;
+  if (window.CHARACTERS) {
+    activeAgents = window.CHARACTERS.filter(c => c.currentTask).length;
+  }
+
+  const activeEl = document.getElementById('prod-active-agents');
+  if (activeEl) {
+    activeEl.textContent = activeAgents;
+  }
+
+  // Calculate busyness percentage
+  const totalAgents = window.CHARACTERS ? window.CHARACTERS.length : productivityState.totalAgents;
+  const busynessPercent = totalAgents > 0 ? Math.round((activeAgents / totalAgents) * 100) : 0;
+
+  const busynessEl = document.getElementById('prod-busyness');
+  const busynessFill = document.getElementById('prod-busyness-fill');
+  if (busynessEl) {
+    busynessEl.textContent = busynessPercent + '%';
+  }
+  if (busynessFill) {
+    busynessFill.style.width = busynessPercent + '%';
+  }
+
+  // Update heatmap based on actual agent positions
+  updateHeatmapFromAgents();
+
+  // Update leaderboard
+  updateLeaderboard();
+};
+
 // Initialize productivity dashboard
 function setupProductivityDashboard() {
   const toggleBtn = document.getElementById('productivity-toggle');
@@ -2511,55 +2561,6 @@ function initHeatmapGrid() {
 }
 
 // Update productivity stats display
-window.updateProductivityStats = function() {
-  // Get task count from achievement state
-  const tasksCompleted = achievementState?.stats?.tasksCompleted || 0;
-  
-  // Update tasks completed
-  const tasksEl = document.getElementById('prod-tasks-completed');
-  if (tasksEl) {
-    tasksEl.textContent = tasksCompleted;
-  }
-  
-  // Update tasks subtext with goal progress
-  const tasksSubEl = document.getElementById('prod-tasks-subtext');
-  if (tasksSubEl) {
-    const dailyGoal = 5;
-    const progress = Math.min((tasksCompleted / dailyGoal) * 100, 100);
-    tasksSubEl.textContent = `Goal: ${dailyGoal} tasks (${Math.round(progress)}%)`;
-  }
-  
-  // Count active agents (agents with currentTask from CHARACTERS)
-  let activeAgents = 0;
-  if (window.CHARACTERS) {
-    activeAgents = window.CHARACTERS.filter(c => c.currentTask).length;
-  }
-  
-  const activeEl = document.getElementById('prod-active-agents');
-  if (activeEl) {
-    activeEl.textContent = activeAgents;
-  }
-  
-  // Calculate busyness percentage
-  const totalAgents = window.CHARACTERS ? window.CHARACTERS.length : productivityState.totalAgents;
-  const busynessPercent = totalAgents > 0 ? Math.round((activeAgents / totalAgents) * 100) : 0;
-  
-  const busynessEl = document.getElementById('prod-busyness');
-  const busynessFill = document.getElementById('prod-busyness-fill');
-  if (busynessEl) {
-    busynessEl.textContent = busynessPercent + '%';
-  }
-  if (busynessFill) {
-    busynessFill.style.width = busynessPercent + '%';
-  }
-  
-  // Update heatmap based on actual agent positions
-  updateHeatmapFromAgents();
-  
-  // Update leaderboard
-  updateLeaderboard();
-};
-
 // Update heatmap based on current agent positions
 function updateHeatmapFromAgents() {
   if (!window.CHARACTERS || !window.CharacterStates) return;
