@@ -166,6 +166,11 @@ function triggerVisitorArrival() {
   
   console.log(`👋 Visitor arriving: ${type}`);
   
+  // Play notification sound (Phase 8)
+  if (window.onOfficeEvent) {
+    window.onOfficeEvent('visitor');
+  }
+  
   currentVisitor = createVisitor(type);
   visitorCount++;
   
@@ -575,6 +580,12 @@ function triggerPizzaDeliveryEvent() {
   if (currentEvent) return; // Already in an event
   
   console.log('🍕 Pizza delivery event triggered!');
+  
+  // Play notification sound (Phase 8)
+  if (window.onOfficeEvent) {
+    window.onOfficeEvent('pizza');
+  }
+  
   currentEvent = {
     type: OfficeEventTypes.PIZZA_DELIVERY,
     startTime: Date.now()
