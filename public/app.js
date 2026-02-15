@@ -11,7 +11,184 @@ const MIN_HEIGHT = 800;
 window.MIN_WIDTH = MIN_WIDTH;
 window.MIN_HEIGHT = MIN_HEIGHT;
 
-// Color palette - cozy office colors
+// ============================================================================
+// Day/Night Cycle System
+// ============================================================================
+
+// Get current time (real-world)
+function getCurrentTime() {
+  return new Date();
+}
+
+// Get current hour (0-23)
+function getCurrentHour() {
+  return getCurrentTime().getHours();
+}
+
+// Get current minutes
+function getCurrentMinutes() {
+  return getCurrentTime().getMinutes();
+}
+
+// Get current time as decimal hours (e.g., 14.5 = 2:30 PM)
+function getTimeAsDecimal() {
+  const now = getCurrentTime();
+  return now.getHours() + now.getMinutes() / 60;
+}
+
+// Lighting states
+const LIGHTING_STATES = {
+  DAY: 'day',           // 6 AM - 6 PM
+  EVENING: 'evening',   // 6 PM - 9 PM
+  NIGHT: 'night'        // 9 PM - 6 AM
+};
+
+// Get current lighting state based on real time
+function getLightingState() {
+  const hour = getCurrentHour();
+  if (hour >= 6 && hour < 18) {
+    return LIGHTING_STATES.DAY;
+  } else if (hour >= 18 && hour < 21) {
+    return LIGHTING_STATES.EVENING;
+  } else {
+    return LIGHTING_STATES.NIGHT;
+  }
+}
+
+// Get transition progress (0-1) for gradual color shifts during transition periods
+function getTransitionProgress() {
+  const hour = getCurrentHour();
+  const minutes = getCurrentMinutes();
+  const timeDecimal = hour + minutes / 60;
+  
+  // Morning transition: 5:30 AM - 6:00 AM
+  if (timeDecimal >= 5.5 && timeDecimal < 6) {
+    return (timeDecimal - 5.5) / 0.5;
+  }
+  // Evening transition: 5:30 PM - 6:00 PM
+  else if (timeDecimal >= 17.5 && timeDecimal < 18) {
+    return (timeDecimal - 17.5) / 0.5;
+  }
+  // Night transition: 8:30 PM - 9:00 PM
+  else if (timeDecimal >= 20.5 && timeDecimal < 21) {
+    return (timeDecimal - 20.5) / 0.5;
+  }
+  // Early morning transition: 5:30 AM - 6:00 AM (night to day)
+  else if (timeDecimal >= 5.5 && timeDecimal < 6) {
+    return (timeDecimal - 5.5) / 0.5;
+  }
+  return null;
+}
+
+// Interpolate between two colors
+function lerpColor(color1, color2, t) {
+  const c1 = hexToRgb(color1);
+  const c2 = hexToRgb(color2);
+  
+  const r = Math.round(c1.r + (c2.r - c1.r) * t);
+  const g = Math.round(c1.g + (c2.g - c1.g) * t);
+  const b = Math.round(c1.b + (c2.b - c1.b) * t);
+  
+  return rgbToHex(r, g, b);
+}
+
+// Convert hex to RGB
+function hexToRgb(hex) {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : { r: 0, g: 0, b: 0 };
+}
+
+// Convert RGB to hex
+function rgbToHex(r, g, b) {
+  return '#' + [r, g, b].map(x => {
+    const hex = x.toString(16);
+    return hex.length === 1 ? '0' + hex : hex;
+  }).join('');
+}
+
+// Get desk lamp state based on time
+function areDeskLampsOn() {
+  const hour = getCurrentHour();
+  // Lamps on during evening and night
+  return hour >= 17 || hour < 6;
+}
+
+// Get monitor glow state
+function areMonitorsOn() {
+  const hour = getCurrentHour();
+  // Monitors on during work hours and evening
+  return hour >= 7 && hour < 22;
+}
+
+// Get sky color for window
+function getSkyColor() {
+  const state = getLightingState();
+  const transition = getTransitionProgress();
+  
+  if (state === LIGHTING_STATES.DAY) {
+    if (transition !== null) {
+      // Transition from night to day
+      return lerpColor('#1a1a3a', '#87CEEB', transition);
+    }
+    return '#87CEEB'; // Bright blue day sky
+  } else if (state === LIGHTING_STATES.EVENING) {
+    if (transition !== null) {
+      // Transition from day to evening
+      return lerpColor('#87CEEB', '#FF6B35', transition);
+    }
+    return '#FF6B35'; // Orange sunset
+  } else {
+    if (transition !== null) {
+      // Transition from evening to night
+      return lerpColor('#FF6B35', '#0a0a1a', transition);
+    }
+    return '#0a0a1a'; // Dark night sky
+  }
+}
+
+// Get ambient light overlay color
+function getAmbientOverlay() {
+  const state = getLightingState();
+  const transition = getTransitionProgress();
+  
+  if (state === LIGHTING_STATES.DAY) {
+    return { color: 'rgba(255, 250, 220, 0.15)', intensity: 0.15 };
+  } else if (state === LIGHTING_STATES.EVENING) {
+    if (transition !== null) {
+      const intensity = 0.15 + transition * 0.2;
+      return { color: lerpColor('rgba(255, 250, 220, 0.15)', 'rgba(255, 180, 100, 0.35)', transition), intensity };
+    }
+    return { color: 'rgba(255, 180, 100, 0.35)', intensity: 0.35 };
+  } else {
+    // Night - dark blue ambient
+    if (transition !== null) {
+      const intensity = 0.35 + transition * 0.15;
+      return { color: lerpColor('rgba(255, 180, 100, 0.35)', 'rgba(20, 20, 60, 0.5)', transition), intensity };
+    }
+    return { color: 'rgba(20, 20, 60, 0.5)', intensity: 0.5 };
+  }
+}
+
+// Get time display string
+function getTimeDisplay() {
+  const now = getCurrentTime();
+  const hours = now.getHours();
+  const minutes = now.getMinutes();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const displayHours = hours % 12 || 12;
+  const displayMinutes = minutes.toString().padStart(2, '0');
+  return `${displayHours}:${displayMinutes} ${ampm}`;
+}
+
+// ============================================================================
+// End Day/Night Cycle System
+// ============================================================================
+
+// Color palette - cozy office colors (base colors, will be modified by lighting)
 const COLORS = {
   floor: '#2d2d44',
   wall: '#4a4a6a',
@@ -106,6 +283,23 @@ function draw(timestamp = 0) {
   // Clear canvas
   ctx.fillStyle = COLORS.floor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Apply day/night ambient overlay
+  const ambient = getAmbientOverlay();
+  ctx.fillStyle = ambient.color;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Draw time display in corner
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `${14 * scale}px Arial`;
+  ctx.textAlign = 'left';
+  ctx.fillText(getTimeDisplay(), 20 * scale, 30 * scale);
+  
+  // Draw lighting state indicator
+  const lightingState = getLightingState();
+  const stateLabel = lightingState.charAt(0).toUpperCase() + lightingState.slice(1);
+  ctx.fillStyle = lightingState === 'night' ? '#8888ff' : lightingState === 'evening' ? '#ffaa55' : '#ffff88';
+  ctx.fillText(stateLabel, 20 * scale, 50 * scale);
   
   // Office outer walls
   ctx.strokeStyle = COLORS.wallOutline;
@@ -354,6 +548,11 @@ function draw(timestamp = 0) {
   
   // Draw ambient animations (Phase 4)
   drawAmbientAnimations(timestamp);
+  
+  // Draw day/night elements (desk lamps, window)
+  const bounds = getOfficeBounds();
+  drawDeskLamps(bounds.x, bounds.y, bounds.w, bounds.h);
+  drawWindow(bounds.x, bounds.y, bounds.w, bounds.h);
   
   // Draw character sprites on top of the office layout
   if (window.drawCharacters) {
@@ -654,6 +853,134 @@ function drawLightFlicker(timestamp) {
     ctx.fillStyle = `rgba(200, 200, 255, ${flickerIntensity})`;
     ctx.fillRect(x, y, w, h);
   }
+}
+
+// ============================================================================
+// Desk Lamps (Day/Night Cycle)
+// ============================================================================
+
+// Helper function to get office bounds
+function getOfficeBounds() {
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
+  const w = MIN_WIDTH * scale;
+  const h = MIN_HEIGHT * scale;
+  const x = cx - w / 2;
+  const y = cy - h / 2;
+  return { x, y, w, h };
+}
+
+// Draw desk lamps at each workstation
+function drawDeskLamps(x, y, w, h) {
+  const lampsOn = areDeskLampsOn();
+  
+  // Lamp positions for each desk area
+  const lampPositions = [
+    // Nova's office lamp
+    { x: x + w * 0.73, y: y + h * 0.17, scale: 1 },
+    // Delta's station lamp
+    { x: x + w * 0.88, y: y + h * 0.10, scale: 0.8 },
+    // Zero pods (row of 3)
+    { x: x + w * 0.74, y: y + h * 0.38, scale: 0.7 },
+    { x: x + w * 0.82, y: y + h * 0.38, scale: 0.7 },
+    { x: x + w * 0.90, y: y + h * 0.38, scale: 0.7 },
+    // Bestie reception lamp
+    { x: x + w * 0.74, y: y + h * 0.60, scale: 0.8 },
+    // Dexter desk lamp
+    { x: x + w * 0.88, y: y + h * 0.60, scale: 0.8 }
+  ];
+  
+  lampPositions.forEach(lamp => {
+    const s = lamp.scale * scale;
+    
+    // Lamp base
+    ctx.fillStyle = '#3a3a4a';
+    ctx.beginPath();
+    ctx.ellipse(lamp.x, lamp.y + 8 * s, 10 * s, 4 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Lamp arm
+    ctx.strokeStyle = '#4a4a5a';
+    ctx.lineWidth = 2 * s;
+    ctx.beginPath();
+    ctx.moveTo(lamp.x, lamp.y + 8 * s);
+    ctx.lineTo(lamp.x, lamp.y - 5 * s);
+    ctx.stroke();
+    
+    // Lamp shade
+    ctx.fillStyle = lampsOn ? '#5a4a3a' : '#4a4a5a';
+    ctx.beginPath();
+    ctx.moveTo(lamp.x - 12 * s, lamp.y - 5 * s);
+    ctx.lineTo(lamp.x + 12 * s, lamp.y - 5 * s);
+    ctx.lineTo(lamp.x + 8 * s, lamp.y - 15 * s);
+    ctx.lineTo(lamp.x - 8 * s, lamp.y - 15 * s);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Lamp glow when on
+    if (lampsOn) {
+      // Create radial gradient for lamp glow
+      const gradient = ctx.createRadialGradient(
+        lamp.x, lamp.y - 5 * s, 0,
+        lamp.x, lamp.y - 5 * s, 40 * s
+      );
+      gradient.addColorStop(0, 'rgba(255, 220, 150, 0.4)');
+      gradient.addColorStop(0.5, 'rgba(255, 200, 100, 0.2)');
+      gradient.addColorStop(1, 'rgba(255, 180, 50, 0)');
+      
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(lamp.x, lamp.y - 5 * s, 40 * s, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  });
+}
+
+// Draw window with sky color
+function drawWindow(x, y, w, h) {
+  // Window position (back wall of office)
+  const windowX = x + w * 0.35;
+  const windowY = y + h * 0.15;
+  const windowW = w * 0.25;
+  const windowH = h * 0.35;
+  
+  // Get sky color based on time
+  const skyColor = getSkyColor();
+  
+  // Window frame
+  ctx.fillStyle = '#5a5a7a';
+  ctx.fillRect(windowX - 4 * scale, windowY - 4 * scale, windowW + 8 * scale, windowH + 8 * scale);
+  
+  // Window glass with sky color
+  ctx.fillStyle = skyColor;
+  ctx.fillRect(windowX, windowY, windowW, windowH);
+  
+  // Window cross bars
+  ctx.strokeStyle = '#6a6a8a';
+  ctx.lineWidth = 3 * scale;
+  ctx.beginPath();
+  ctx.moveTo(windowX + windowW / 2, windowY);
+  ctx.lineTo(windowX + windowW / 2, windowY + windowH);
+  ctx.moveTo(windowX, windowY + windowH / 2);
+  ctx.lineTo(windowX + windowW, windowY + windowH / 2);
+  ctx.stroke();
+  
+  // Add subtle glow at night from window
+  if (getLightingState() === LIGHTING_STATES.NIGHT) {
+    const gradient = ctx.createLinearGradient(windowX, windowY, windowX - 30 * scale, windowY);
+    gradient.addColorStop(0, 'rgba(30, 30, 80, 0.3)');
+    gradient.addColorStop(1, 'rgba(30, 30, 80, 0)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(windowX - 30 * scale, windowY, 30 * scale, windowH);
+  }
+}
+
+// Update monitor colors based on time of day
+function getMonitorGlowColor() {
+  if (areMonitorsOn()) {
+    return '#8a8aff'; // Blue monitor glow
+  }
+  return '#2a2a3a'; // Off/dark monitor
 }
 
 // ============================================================================
