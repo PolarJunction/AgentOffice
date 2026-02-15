@@ -2,6 +2,9 @@
 const canvas = document.getElementById('office');
 const ctx = canvas.getContext('2d');
 
+// Animation timestamp for requestAnimationFrame
+let animationTimestamp = 0;
+
 // Office dimensions and layout
 let scale = 1;
 window.scale = scale;
@@ -425,7 +428,6 @@ resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
 // Draw the office layout
-let animationTimestamp = 0;
 function draw(timestamp = 0) {
   animationTimestamp = timestamp;
   const cx = canvas.width / 2;
