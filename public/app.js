@@ -1620,13 +1620,12 @@ function drawCoffeeSteam(timestamp) {
 // ============================================================================
 
 // Helper function to get office bounds
+// Must match how draw() positions the office (centered at origin after translate)
 function getOfficeBounds() {
-  const cx = canvas.width / 2;
-  const cy = canvas.height / 2;
   const w = MIN_WIDTH * scale;
   const h = MIN_HEIGHT * scale;
-  const x = cx - w / 2;
-  const y = cy - h / 2;
+  const x = -w / 2;
+  const y = -h / 2;
   return { x, y, w, h };
 }
 

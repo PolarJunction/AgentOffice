@@ -334,19 +334,19 @@ const LABEL_OFFSET = -12;
 const FRAME_DURATION = 500;
 
 // Get office layout boundaries (must match app.js)
+// Returns coordinates in the transformed space (centered at origin)
 function getOfficeBounds() {
   // Guard: ensure canvas is initialized before use
   if (!canvas || !canvas.width || !canvas.height) {
     return { cx: 0, cy: 0, w: getMinWidth(), h: getMinHeight(), x: 0, y: 0, scale: 1 };
   }
-  const cx = canvas.width / 2;
-  const cy = canvas.height / 2;
   const w = getMinWidth() * scale;
   const h = getMinHeight() * scale;
-  const x = cx - w / 2;
-  const y = cy - h / 2;
+  // Office is centered at origin in transformed space
+  const x = -w / 2;
+  const y = -h / 2;
 
-  return { cx, cy, w, h, x, y, scale };
+  return { cx: 0, cy: 0, w, h, x, y, scale };
 }
 
 // Transition character to a new state
