@@ -18,6 +18,10 @@ let whiteboardProgress = 0;
 // Water cooler bubbles (declared early to avoid TDZ)
 let waterCoolerBubbles = [];
 
+// Clock variables (declared early to avoid TDZ)
+let clockTime = new Date();
+let clockAngle = 0;
+
 // Office dimensions and layout
 let scale = 1;
 window.scale = scale;
@@ -1114,10 +1118,6 @@ window.highlightAgentInTimeline = highlightAgentInTimeline;
 // ============================================================================
 // Ambient Animations - Phase 4 & 5 - Office Ambiance
 // ============================================================================
-
-// Clock variables
-let clockAngle = 0;
-let clockTime = new Date(); // Real time clock
 
 // Coffee steam particles
 const coffeeSteamParticles = [];
