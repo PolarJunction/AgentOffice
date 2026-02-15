@@ -662,6 +662,10 @@ function createInfoOverlay() {
         word-wrap: break-word;
       "></div>
     </div>
+    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #444;">
+      <span style="color: #666; font-size: 11px;">Last active: </span>
+      <span id="overlay-last-active" style="color: #888; font-size: 11px;">-</span>
+    </div>
   `;
   
   document.body.appendChild(overlay);
@@ -727,6 +731,38 @@ function handleCanvasClick(event) {
       taskContainer.style.display = 'none';
     }
     
+    // Position overlay near the clicked character
+    const canvas = document.getElementById('office');
+    const rect = canvas.getBoundingClientRect();
+    const charScreenX = clickedCharacter.offsetX * rect.width + rect.left;
+    const charScreenY = clickedCharacter.offsetY * rect.height + rect.top;
+    
+    // Position to the right of character, but keep within viewport
+    let posX = charScreenX + 30;
+    let posY = charScreenY - 20;
+    
+    // Adjust if too close to right edge
+    if (posX + 300 > window.innerWidth) {
+      posX = charScreenX - 320;
+    }
+    // Adjust if too close to bottom
+    if (posY + 200 > window.innerHeight) {
+      posY = window.innerHeight - 220;
+    }
+    
+    overlay.style.left = posX + 'px';
+    overlay.style.top = posY + 'px';
+    overlay.style.right = 'auto';
+    
+    // Show last active time if available
+    const lastActiveEl = document.getElementById('overlay-last-active');
+    if (clickedCharacter.lastActive) {
+      const lastActiveDate = new Date(clickedCharacter.lastActive);
+      lastActiveEl.textContent = lastActiveDate.toLocaleTimeString();
+    } else {
+      lastActiveEl.textContent = '-';
+    }
+    
     overlay.style.display = 'block';
   } else {
     overlay.style.display = 'none';
@@ -737,4 +773,15 @@ function handleCanvasClick(event) {
 startStatusPolling();
 
 // Add click handler for agent info
+// Add click handler for agent info (desktop)
 document.getElementById('office').addEventListener('click', handleCanvasClick);
+
+// Add touch handler for mobile
+document.getElementById('office').addEventListener('touchstart', function(event) {
+  event.preventDefault();
+  const touch = event.touches[0];
+  handleCanvasClick({
+    clientX: touch.clientX,
+    clientY: touch.clientY
+  });
+}, { passive: false });
