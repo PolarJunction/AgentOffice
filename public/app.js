@@ -810,10 +810,9 @@ function draw(timestamp = 0, deltaTime = 16) {
   // Draw ambient animations (Phase 4)
   drawAmbientAnimations(timestamp);
   
-  // Draw day/night elements (desk lamps, window)
+  // Draw day/night elements (desk lamps only)
   const bounds = getOfficeBounds();
   drawDeskLamps(bounds.x, bounds.y, bounds.w, bounds.h);
-  drawWindow(bounds.x, bounds.y, bounds.w, bounds.h);
 
   // Draw character sprites on top of the office layout (inside pan/zoom transform)
   // Pass deltaTime for smooth animation updates
@@ -1685,49 +1684,6 @@ function drawDeskLamps(x, y, w, h) {
       ctx.fill();
     }
   });
-}
-
-// Draw window with sky color
-function drawWindow(x, y, w, h) {
-  // Window position - on the back wall (top portion)
-  // Position in the right side of the office, upper area
-  const windowX = x + w * 0.65;
-  const windowY = y + h * 0.05;
-  const windowW = w * 0.25;
-  const windowH = h * 0.25;
-
-  // Get sky color based on time
-  const skyColor = getSkyColor();
-
-  // Wall around window (cutout effect)
-  ctx.fillStyle = '#4a4a6a';
-  ctx.fillRect(windowX - 6 * scale, windowY - 6 * scale, windowW + 12 * scale, windowH + 12 * scale);
-
-  // Window glass with sky color
-  ctx.fillStyle = skyColor;
-  ctx.fillRect(windowX, windowY, windowW, windowH);
-
-  // Window frame border
-  ctx.strokeStyle = '#6a6a8a';
-  ctx.lineWidth = 2 * scale;
-  ctx.strokeRect(windowX, windowY, windowW, windowH);
-
-  // Window cross bars (modern horizontal bar instead of十字)
-  ctx.strokeStyle = '#5a5a7a';
-  ctx.lineWidth = 3 * scale;
-  ctx.beginPath();
-  ctx.moveTo(windowX, windowY + windowH / 2);
-  ctx.lineTo(windowX + windowW, windowY + windowH / 2);
-  ctx.stroke();
-
-  // Add glow at night from window
-  if (getLightingState() === LIGHTING_STATES.NIGHT) {
-    const gradient = ctx.createLinearGradient(windowX - 40 * scale, windowY, windowX, windowY);
-    gradient.addColorStop(0, 'rgba(50, 50, 100, 0.4)');
-    gradient.addColorStop(1, 'rgba(50, 50, 100, 0)');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(windowX - 40 * scale, windowY, 40 * scale, windowH);
-  }
 }
 
 // Update monitor colors based on time of day
