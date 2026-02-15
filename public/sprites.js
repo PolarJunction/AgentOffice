@@ -337,7 +337,8 @@ const FRAME_DURATION = 500;
 // Returns coordinates in the transformed space (centered at origin)
 function getOfficeBounds() {
   // Guard: ensure canvas is initialized before use
-  if (!canvas || !canvas.width || !canvas.height) {
+  const c = typeof canvas !== 'undefined' ? canvas : (typeof window.canvas !== 'undefined' ? window.canvas : null);
+  if (!c || !c.width || !c.height) {
     return { cx: 0, cy: 0, w: getMinWidth(), h: getMinHeight(), x: 0, y: 0, scale: 1 };
   }
   const w = getMinWidth() * scale;

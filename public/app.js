@@ -835,6 +835,7 @@ function draw(timestamp = 0, deltaTime = 16) {
   const stateLabel = lightingState.charAt(0).toUpperCase() + lightingState.slice(1);
   ctx.fillStyle = lightingState === 'night' ? '#8888ff' : lightingState === 'evening' ? '#ffaa55' : '#ffff88';
   ctx.fillText(stateLabel, 20, 50);
+}
 
 // Animation loop for state machine
 let lastTime = 0;
