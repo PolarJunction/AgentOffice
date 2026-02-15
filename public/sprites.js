@@ -5,7 +5,14 @@
 // Get office layout constants from app.js (global scope)
 const MIN_WIDTH = window.MIN_WIDTH || 1200;
 const MIN_HEIGHT = window.MIN_HEIGHT || 800;
-let scale = window.scale || 1;
+// Use Object.defineProperty to avoid redeclaring 'scale' from app.js
+if (typeof scale === 'undefined') {
+  Object.defineProperty(window, 'scale', {
+    get: function() { return window._scale || 1; },
+    set: function(v) { window._scale = v; },
+    configurable: true
+  });
+}
 
 // Walking speed (units per millisecond) - adjustable
 const WALKING_SPEED = 0.0008;
