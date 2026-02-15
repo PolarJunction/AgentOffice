@@ -455,9 +455,54 @@ function updateCharacterFrame(character, deltaTime) {
   }
 }
 
+// Idle wandering - make characters wander around the lounge area
+function updateIdleWandering(character, deltaTime) {
+  if (character.state !== CharacterStates.IDLE) return;
+
+  // Initialize wander timer if not set
+  if (!character.wanderTimer) {
+    character.wanderTimer = 0;
+    character.wanderTargetX = character.offsetX;
+    character.wanderTargetY = character.offsetY;
+  }
+
+  character.wanderTimer += deltaTime;
+
+  // Change wander target every 3-5 seconds
+  const wanderInterval = 3000 + Math.random() * 2000;
+  if (character.wanderTimer > wanderInterval) {
+    character.wanderTimer = 0;
+    // Pick a random position in the lounge area
+    const loungePositions = [
+      { x: 0.08, y: 0.55 },  // Near couch
+      { x: 0.15, y: 0.65 },  // Lounge center
+      { x: 0.08, y: 0.75 },  // Near plant
+      { x: 0.18, y: 0.80 },  // Coffee table area
+      { x: 0.12, y: 0.50 }   // Near kitchen
+    ];
+    const pos = loungePositions[Math.floor(Math.random() * loungePositions.length)];
+    character.wanderTargetX = pos.x;
+    character.wanderTargetY = pos.y;
+  }
+
+  // Slowly move toward wander target
+  const wanderSpeed = 0.00003 * deltaTime;
+  const dx = character.wanderTargetX - character.offsetX;
+  const dy = character.wanderTargetY - character.offsetY;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+
+  if (dist > 0.005) {
+    character.offsetX += (dx / dist) * wanderSpeed * Math.min(dist, 0.05);
+    character.offsetY += (dy / dist) * wanderSpeed * Math.min(dist, 0.05);
+  }
+}
+
 // Update character position along waypoint path (using linear interpolation)
 function updateCharacterPosition(character, deltaTime) {
-  if (character.state === CharacterStates.WALKING_TO_DESK || 
+  // First handle idle wandering
+  updateIdleWandering(character, deltaTime);
+
+  if (character.state === CharacterStates.WALKING_TO_DESK ||
       character.state === CharacterStates.WALKING_TO_LOUNGE) {
     
     // Use path system for movement
@@ -555,15 +600,18 @@ function getStateColor(character) {
 function getFrameOffset(character) {
   const frame = character.frame;
   const state = character.state;
-  
+
   if (state === CharacterStates.WALKING_TO_DESK || state === CharacterStates.WALKING_TO_LOUNGE) {
     // Walking - vertical bounce
-    return [0, -3, 0][frame] * scale;
+    return [0, -4, 0][frame] * scale;
   } else if (state === CharacterStates.WORKING) {
     // Working - slight vertical movement
+    return [0, -2, 0][frame] * scale;
+  } else if (state === CharacterStates.IDLE) {
+    // Idle - subtle breathing animation
     return [0, -1, 0][frame] * scale;
   }
-  
+
   return 0;
 }
 

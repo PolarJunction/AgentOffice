@@ -1041,7 +1041,7 @@ function processAgentStatus(agents) {
     // Only react to state CHANGES (not every poll)
     if (prevState !== undefined && prevState !== agent.state) {
       // State changed! Trigger transition
-      if (agent.state === 'working' && currentState !== states.WORKING && 
+      if (agent.state === 'working' && currentState !== states.WORKING &&
           currentState !== states.WALKING_TO_DESK) {
         // Agent started working - walk to desk
         window.setCharacterState(characterId, states.WALKING_TO_DESK);
@@ -1055,7 +1055,7 @@ function processAgentStatus(agents) {
         if (window.onAgentStart) {
           window.onAgentStart(character);
         }
-      } else if (agent.state === 'idle' && currentState === states.WORKING) {
+      } else if (agent.state === 'idle' && (currentState === states.WORKING || currentState === states.WALKING_TO_DESK)) {
         // Agent stopped working - walk back to lounge
         window.setCharacterState(characterId, states.WALKING_TO_LOUNGE);
         // Show speech bubble for completing task
@@ -1069,6 +1069,9 @@ function processAgentStatus(agents) {
           window.onTaskComplete(character);
         }
       }
+    } else if (prevState === undefined && agent.state === 'idle') {
+      // Initial state - agent is idle, send to lounge
+      window.setCharacterState(characterId, states.WALKING_TO_LOUNGE);
     }
     
     // Store current state for next comparison
