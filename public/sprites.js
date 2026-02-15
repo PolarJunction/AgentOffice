@@ -346,6 +346,7 @@ const FRAME_DURATION = 500;
 function getOfficeBounds() {
   // Guard: ensure canvas is initialized before use
   if (!canvas || !canvas.width || !canvas.height) {
+    console.warn('getOfficeBounds: canvas not ready, using defaults');
     return { cx: 0, cy: 0, w: getMinWidth(), h: getMinHeight(), x: 0, y: 0, scale: 1 };
   }
   const cx = canvas.width / 2;
@@ -355,6 +356,7 @@ function getOfficeBounds() {
   const x = cx - w / 2;
   const y = cy - h / 2;
 
+  console.log('getOfficeBounds:', { cx, cy, w, h, x, y, scale, canvasWidth: canvas.width, canvasHeight: canvas.height });
   return { cx, cy, w, h, x, y, scale };
 }
 
