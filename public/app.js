@@ -22,6 +22,18 @@ let waterCoolerBubbles = [];
 let clockTime = new Date();
 let clockAngle = 0;
 
+// Speech bubbles (declared early to avoid TDZ)
+const speechBubbles = [];
+
+// Coffee steam particles (declared early to avoid TDZ)
+const coffeeSteamParticles = [];
+
+// Timeline events (declared early to avoid TDZ)
+const timelineEvents = [];
+
+// Celebration particles (declared early to avoid TDZ)
+let celebrationParticles = [];
+
 // Office dimensions and layout
 let scale = 1;
 window.scale = scale;
@@ -211,9 +223,6 @@ function getTimeDisplay() {
 // ============================================================================
 // Agent Speech Bubbles - Phase 5
 // ============================================================================
-
-// Speech bubble data structure
-const speechBubbles = [];
 
 // Agent quips by character name
 const AGENT_QUIPS = {
@@ -1016,7 +1025,6 @@ function processAgentStatus(agents) {
 // ============================================================================
 
 // Timeline state
-const timelineEvents = [];
 const MAX_TIMELINE_EVENTS = 20;
 
 // Add event to timeline
@@ -1118,9 +1126,6 @@ window.highlightAgentInTimeline = highlightAgentInTimeline;
 // ============================================================================
 // Ambient Animations - Phase 4 & 5 - Office Ambiance
 // ============================================================================
-
-// Coffee steam particles
-const coffeeSteamParticles = [];
 
 // Draw ambient animations (clock, plants swaying, light flicker)
 function drawAmbientAnimations(timestamp) {
@@ -1867,9 +1872,6 @@ function drawAchievementTrophies() {
     }
   });
 }
-
-// Celebration animation state
-let celebrationParticles = [];
 
 function spawnCelebration(x, y) {
   const colors = ['#FFD700', '#FF6B6B', '#4CAF50', '#2196F3', '#9C27B0', '#FF9800'];
