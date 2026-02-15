@@ -902,11 +902,19 @@ function processAgentStatus(agents) {
         window.setCharacterState(characterId, states.WALKING_TO_DESK);
         // Show speech bubble for starting task
         showSpeechBubble(characterId, character.name, 'start', agent.currentTask);
+        // Add timeline event (Phase 6)
+        if (window.addTimelineEvent) {
+          window.addTimelineEvent(character.name, 'started', agent.currentTask);
+        }
       } else if (agent.state === 'idle' && currentState === states.WORKING) {
         // Agent stopped working - walk back to lounge
         window.setCharacterState(characterId, states.WALKING_TO_LOUNGE);
         // Show speech bubble for completing task
         showSpeechBubble(characterId, character.name, 'complete');
+        // Add timeline event (Phase 6)
+        if (window.addTimelineEvent) {
+          window.addTimelineEvent(character.name, 'completed');
+        }
         // Trigger happy mood on task completion (Phase 5)
         if (window.onTaskComplete) {
           window.onTaskComplete(character);
@@ -918,6 +926,110 @@ function processAgentStatus(agents) {
     previousAgentStates.set(characterId, agent.state);
   });
 }
+
+// ============================================================================
+// Activity Timeline - Phase 6
+// ============================================================================
+
+// Timeline state
+const timelineEvents = [];
+const MAX_TIMELINE_EVENTS = 20;
+
+// Add event to timeline
+function addTimelineEvent(agentName, eventType, taskName = null) {
+  const event = {
+    id: Date.now() + Math.random(),
+    timestamp: new Date(),
+    agentName: agentName,
+    eventType: eventType,
+    taskName: taskName
+  };
+  
+  timelineEvents.unshift(event);
+  
+  // Keep only last 20 events
+  if (timelineEvents.length > MAX_TIMELINE_EVENTS) {
+    timelineEvents.pop();
+  }
+  
+  renderTimeline();
+}
+
+// Format timestamp for display
+function formatEventTime(date) {
+  const now = new Date();
+  const diff = now - date;
+  
+  // Less than 1 minute ago
+  if (diff < 60000) {
+    return 'just now';
+  }
+  
+  // Less than 1 hour ago
+  if (diff < 3600000) {
+    const mins = Math.floor(diff / 60000);
+    return `${mins}m ago`;
+  }
+  
+  // Otherwise show time
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+// Render timeline events
+function renderTimeline() {
+  const container = document.getElementById('timeline-events');
+  if (!container) return;
+  
+  if (timelineEvents.length === 0) {
+    container.innerHTML = '<div class="timeline-empty">No activity yet</div>';
+    return;
+  }
+  
+  container.innerHTML = timelineEvents.map(event => {
+    const typeLabels = {
+      'started': 'Started working',
+      'completed': 'Completed task',
+      'idle': 'Became idle'
+    };
+    
+    return `
+      <div class="timeline-event ${event.eventType}">
+        <div class="event-header">
+          <span class="event-agent">${event.agentName}</span>
+          <span class="event-time">${formatEventTime(event.timestamp)}</span>
+        </div>
+        <div class="event-type">${typeLabels[event.eventType] || event.eventType}</div>
+        ${event.taskName ? `<div class="event-task">${event.taskName}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+  
+  // Auto-scroll to top (newest)
+  container.scrollTop = 0;
+}
+
+// Toggle timeline panel
+function setupTimelineToggle() {
+  const toggleBtn = document.getElementById('timeline-toggle');
+  const panel = document.getElementById('timeline-panel');
+  
+  if (toggleBtn && panel) {
+    toggleBtn.addEventListener('click', () => {
+      panel.classList.toggle('collapsed');
+      toggleBtn.textContent = panel.classList.contains('collapsed') ? '▶' : '◀';
+    });
+  }
+}
+
+// Highlight agent in timeline (click handler)
+function highlightAgentInTimeline(characterId) {
+  // Could be extended to highlight specific events
+  console.log('Highlight agent:', characterId);
+}
+
+// Make functions available globally
+window.addTimelineEvent = addTimelineEvent;
+window.highlightAgentInTimeline = highlightAgentInTimeline;
 
 // ============================================================================
 // Ambient Animations - Phase 4
@@ -1348,6 +1460,10 @@ startStatusPolling();
 if (window.initializeAgentMoods) {
   window.initializeAgentMoods();
 }
+
+// Initialize timeline (Phase 6)
+setupTimelineToggle();
+renderTimeline();
 
 // Add click handler for agent info
 // Add click handler for agent info (desktop)
