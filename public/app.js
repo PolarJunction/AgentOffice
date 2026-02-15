@@ -532,6 +532,12 @@ function draw(timestamp = 0) {
   ctx.fillStyle = COLORS.novaOffice;
   ctx.fillRect(novaX, novaY, novaW, novaH);
   
+  // Whiteboard in Nova's office
+  drawWhiteboard(novaX, novaY, novaW, novaH);
+  
+  // Motivational poster
+  drawMotivationalPoster(rightX, rightY, rightW, rightH, scale);
+  
   // Nova's desk details - monitor
   ctx.fillStyle = '#3a3a5a';
   ctx.fillRect(novaX + novaW * 0.15, novaY + novaH * 0.5, novaW * 0.25, novaH * 0.15);
@@ -688,6 +694,9 @@ function draw(timestamp = 0) {
   ctx.fillStyle = '#777';
   ctx.font = `${12 * scale}px Arial`;
   ctx.fillText('HALLWAY', x + w * 0.5, hallwayY + hallwayH / 2 + 4 * scale);
+  
+  // Water cooler in hallway/middle area
+  drawWaterCooler(x + w * 0.5, hallwayY + hallwayH / 2, scale);
   
   // Arrow indicators in hallway
   ctx.strokeStyle = '#666';
@@ -1032,23 +1041,49 @@ window.addTimelineEvent = addTimelineEvent;
 window.highlightAgentInTimeline = highlightAgentInTimeline;
 
 // ============================================================================
-// Ambient Animations - Phase 4
+// Ambient Animations - Phase 4 & 5 - Office Ambiance
 // ============================================================================
 
 // Clock variables
 let clockAngle = 0;
+let clockTime = new Date(); // Real time clock
+
+// Coffee steam particles
+const coffeeSteamParticles = [];
+
+// Water cooler bubbles
+const waterCoolerBubbles = [];
+
+// Whiteboard diagrams for Nova
+const whiteboardDiagrams = [
+  { type: 'flowchart', color: '#8aff8a' },
+  { type: 'boxes', color: '#ff8a8a' },
+  { type: 'circles', color: '#8a8aff' }
+];
+let currentWhiteboardDiagram = 0;
+let whiteboardProgress = 0;
 
 // Draw ambient animations (clock, plants swaying, light flicker)
 function drawAmbientAnimations(timestamp) {
-  // Clock second hand animation
-  clockAngle = (timestamp / 1000) * (Math.PI / 30); // Full rotation every 60 seconds
+  // Clock second hand animation - uses real time
+  clockTime = new Date();
+  const seconds = clockTime.getSeconds();
+  const minutes = clockTime.getMinutes();
+  const hours = clockTime.getHours();
+  
+  // Second hand angle
+  clockAngle = seconds * (Math.PI / 30);
+  // Minute hand angle (moves gradually)
+  const minuteAngle = minutes * (Math.PI / 30) + seconds / 60 * (Math.PI / 1800);
+  // Hour hand angle
+  const hourAngle = (hours % 12 + minutes / 60) * (Math.PI / 6);
   
   const { x, y, w, h } = getOfficeBounds();
   
   // Draw clock in hallway
   const clockX = x + w * 0.5;
-  const clockY = y + h * 0.22;
-  const clockRadius = 15 * scale;
+  const clockY = y + h * 0.12;
+  const clockRadius = 18 * scale;
   
   // Clock face
   ctx.fillStyle = '#2a2a3a';
@@ -1072,7 +1107,29 @@ function drawAmbientAnimations(timestamp) {
   ctx.arc(clockX, clockY, 2 * scale, 0, Math.PI * 2);
   ctx.fill();
   
-  // Second hand
+  // Hour hand
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 2.5 * scale;
+  ctx.beginPath();
+  ctx.moveTo(clockX, clockY);
+  ctx.lineTo(
+    clockX + Math.sin(hourAngle) * (clockRadius * 0.5),
+    clockY - Math.cos(hourAngle) * (clockRadius * 0.5)
+  );
+  ctx.stroke();
+  
+  // Minute hand
+  ctx.strokeStyle = '#cccccc';
+  ctx.lineWidth = 2 * scale;
+  ctx.beginPath();
+  ctx.moveTo(clockX, clockY);
+  ctx.lineTo(
+    clockX + Math.sin(minuteAngle) * (clockRadius * 0.7),
+    clockY - Math.cos(minuteAngle) * (clockRadius * 0.7)
+  );
+  ctx.stroke();
+  
+  // Second hand (red)
   const secondHandLength = clockRadius - 4 * scale;
   ctx.strokeStyle = '#ff6b6b';
   ctx.lineWidth = 1.5 * scale;
@@ -1084,8 +1141,27 @@ function drawAmbientAnimations(timestamp) {
   );
   ctx.stroke();
   
+  // Clock tick marks
+  ctx.strokeStyle = '#666';
+  ctx.lineWidth = 1 * scale;
+  for (let i = 0; i < 12; i++) {
+    const tickAngle = i * (Math.PI / 6);
+    const innerR = clockRadius - 6 * scale;
+    const outerR = clockRadius - 2 * scale;
+    ctx.beginPath();
+    ctx.moveTo(clockX + Math.sin(tickAngle) * innerR, clockY - Math.cos(tickAngle) * innerR);
+    ctx.lineTo(clockX + Math.sin(tickAngle) * outerR, clockY - Math.cos(tickAngle) * outerR);
+    ctx.stroke();
+  }
+  
   // Plant swaying (in kitchen area)
   drawSwayingPlants(timestamp);
+  
+  // Coffee steam animation
+  drawCoffeeSteam(timestamp);
+  
+  // Update water cooler bubbles
+  updateWaterCoolerBubbles(timestamp);
   
   // Subtle fluorescent light flicker
   drawLightFlicker(timestamp);
@@ -1138,6 +1214,280 @@ function drawLightFlicker(timestamp) {
     const { x, y, w, h } = getOfficeBounds();
     ctx.fillStyle = `rgba(200, 200, 255, ${flickerIntensity})`;
     ctx.fillRect(x, y, w, h);
+  }
+}
+
+// ============================================================================
+// Whiteboard in Nova's Office
+// ============================================================================
+
+function drawWhiteboard(novaX, novaY, novaW, novaH) {
+  const wbX = novaX + novaW * 0.55;
+  const wbY = novaY + novaH * 0.1;
+  const wbW = novaW * 0.4;
+  const wbH = novaH * 0.45;
+  
+  // Whiteboard frame
+  ctx.fillStyle = '#5a5a6a';
+  ctx.fillRect(wbX - 3 * scale, wbY - 3 * scale, wbW + 6 * scale, wbH + 6 * scale);
+  
+  // Whiteboard surface
+  ctx.fillStyle = '#f0f0e8';
+  ctx.fillRect(wbX, wbY, wbW, wbH);
+  
+  // Draw diagram based on Nova's working state
+  const isNovaWorking = window.CHARACTERS?.find(c => c.id === 'nova')?.state === 'Working';
+  
+  if (isNovaWorking) {
+    whiteboardProgress = Math.min(1, whiteboardProgress + 0.02);
+  } else {
+    whiteboardProgress = Math.max(0, whiteboardProgress - 0.01);
+  }
+  
+  if (whiteboardProgress > 0.1) {
+    drawWhiteboardDiagram(wbX, wbY, wbW, wbH);
+  }
+}
+
+function drawWhiteboardDiagram(wbX, wbY, wbW, wbH) {
+  const diagram = whiteboardDiagrams[currentWhiteboardDiagram];
+  const progress = whiteboardProgress;
+  ctx.save();
+  ctx.globalAlpha = progress;
+  ctx.strokeStyle = diagram.color;
+  ctx.fillStyle = diagram.color;
+  ctx.lineWidth = 2 * scale;
+  
+  const padding = wbW * 0.15;
+  const innerW = wbW - padding * 2;
+  const innerH = wbH - padding * 2;
+  
+  if (diagram.type === 'flowchart') {
+    // Simple flowchart
+    const boxW = innerW * 0.35;
+    const boxH = innerH * 0.25;
+    const startX = wbX + padding;
+    const startY = wbY + padding;
+    
+    // Start box
+    ctx.strokeRect(startX, startY + innerH * 0.1, boxW, boxH);
+    ctx.fillText('START', startX + boxW/2, startY + innerH * 0.1 + boxH/2);
+    
+    // Arrow
+    ctx.beginPath();
+    ctx.moveTo(startX + boxW, startY + innerH * 0.1 + boxH/2);
+    ctx.lineTo(startX + boxW + 15 * scale, startY + innerH * 0.1 + boxH/2);
+    ctx.stroke();
+    
+    // Process box
+    const processX = startX + boxW + 15 * scale;
+    ctx.strokeRect(processX, startY + innerH * 0.1, boxW, boxH);
+    
+    // Decision diamond
+    ctx.beginPath();
+    ctx.moveTo(processX + boxW + innerW * 0.15, startY + innerH * 0.3);
+    ctx.lineTo(processX + boxW + innerW * 0.15 + boxH * 0.5, startY + innerH * 0.45);
+    ctx.lineTo(processX + boxW + innerW * 0.15, startY + innerH * 0.6);
+    ctx.lineTo(processX + boxW + innerW * 0.15 - boxH * 0.5, startY + innerH * 0.45);
+    ctx.closePath();
+    ctx.stroke();
+    
+  } else if (diagram.type === 'boxes') {
+    // Grid of boxes
+    const boxSize = innerW * 0.25;
+    for (let row = 0; row < 2; row++) {
+      for (let col = 0; col < 2; col++) {
+        ctx.strokeRect(
+          wbX + padding + col * (boxSize + 8 * scale),
+          wbY + padding + row * (boxSize + 8 * scale),
+          boxSize, boxSize
+        );
+      }
+    }
+    
+  } else if (diagram.type === 'circles') {
+    // Connected circles
+    const centerX = wbX + wbW / 2;
+    const centerY = wbY + wbH / 2;
+    const radius = innerH * 0.25;
+    
+    // Three circles in triangle
+    const positions = [
+      { x: centerX, y: centerY - radius },
+      { x: centerX - radius * 0.8, y: centerY + radius * 0.5 },
+      { x: centerX + radius * 0.8, y: centerY + radius * 0.5 }
+    ];
+    
+    positions.forEach(pos => {
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, radius * 0.35, 0, Math.PI * 2);
+      ctx.stroke();
+    });
+    
+    // Connecting lines
+    ctx.beginPath();
+    ctx.moveTo(positions[0].x, positions[0].y);
+    ctx.lineTo(positions[1].x, positions[1].y);
+    ctx.lineTo(positions[2].x, positions[2].y);
+    ctx.lineTo(positions[0].x, positions[0].y);
+    ctx.stroke();
+  }
+  
+  ctx.restore();
+}
+
+// ============================================================================
+// Motivational Poster
+// ============================================================================
+
+function drawMotivationalPoster(rightX, rightY, rightW, rightH, scale) {
+  const posterX = rightX + rightW * 0.52;
+  const posterY = rightY + rightH * 0.53;
+  const posterW = rightW * 0.2;
+  const posterH = rightH * 0.15;
+  
+  // Poster frame
+  ctx.fillStyle = '#3a3a4a';
+  ctx.fillRect(posterX - 2 * scale, posterY - 2 * scale, posterW + 4 * scale, posterH + 4 * scale);
+  
+  // Poster background - gradient
+  const gradient = ctx.createLinearGradient(posterX, posterY, posterX, posterY + posterH);
+  gradient.addColorStop(0, '#1a1a2e');
+  gradient.addColorStop(1, '#2d2d44');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(posterX, posterY, posterW, posterH);
+  
+  // Simple geometric design
+  ctx.strokeStyle = '#ff6b35';
+  ctx.lineWidth = 2 * scale;
+  ctx.beginPath();
+  ctx.moveTo(posterX + posterW * 0.2, posterY + posterH * 0.3);
+  ctx.lineTo(posterX + posterW * 0.5, posterY + posterH * 0.7);
+  ctx.lineTo(posterX + posterW * 0.8, posterY + posterH * 0.3);
+  ctx.stroke();
+  
+  // Text - "FOCUS" at bottom
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `bold ${8 * scale}px Arial`;
+  ctx.textAlign = 'center';
+  ctx.fillText('FOCUS', posterX + posterW / 2, posterY + posterH * 0.9);
+}
+
+// ============================================================================
+// Water Cooler with Bubble Animation
+// ============================================================================
+
+function drawWaterCooler(x, y, scale) {
+  const wcX = x - 20 * scale;
+  const wcY = y - 35 * scale;
+  const wcW = 25 * scale;
+  const wcH = 50 * scale;
+  
+  // Water cooler base
+  ctx.fillStyle = '#4a6a8a';
+  ctx.fillRect(wcX, wcY + wcH * 0.35, wcW, wcH * 0.65);
+  
+  // Water bottle on top
+  ctx.fillStyle = '#6a8aff';
+  ctx.beginPath();
+  ctx.arc(wcX + wcW / 2, wcY + wcH * 0.2, wcW * 0.4, Math.PI, 0);
+  ctx.fill();
+  
+  // Water bottle body
+  ctx.fillRect(wcX + wcW * 0.2, wcY + wcH * 0.2, wcW * 0.6, wcH * 0.18);
+  
+  // Water level (blue)
+  ctx.fillStyle = '#4a8aff';
+  ctx.fillRect(wcX + wcW * 0.25, wcY + wcH * 0.22, wcW * 0.5, wcH * 0.12);
+  
+  // Draw bubbles
+  ctx.fillStyle = 'rgba(150, 200, 255, 0.7)';
+  waterCoolerBubbles.forEach(bubble => {
+    ctx.beginPath();
+    ctx.arc(bubble.x, bubble.y, bubble.size, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+function updateWaterCoolerBubbles(timestamp) {
+  // Spawn new bubbles occasionally
+  if (Math.random() < 0.03) {
+    waterCoolerBubbles.push({
+      x: 0, // Will be set relative to cooler
+      y: 0,
+      size: 1.5 + Math.random() * 2,
+      speed: 0.3 + Math.random() * 0.4,
+      wobble: Math.random() * Math.PI * 2
+    });
+  }
+  
+  // Update bubble positions
+  const coolerX = canvas.width / 2;
+  const coolerY = canvas.height / 2 + 80;
+  
+  for (let i = waterCoolerBubbles.length - 1; i >= 0; i--) {
+    const bubble = waterCoolerBubbles[i];
+    bubble.y -= bubble.speed;
+    bubble.wobble += 0.1;
+    bubble.x = coolerX - 20 + Math.sin(bubble.wobble) * 5;
+    
+    // Remove bubbles that go off top
+    if (bubble.y < coolerY - 35) {
+      waterCoolerBubbles.splice(i, 1);
+    }
+  }
+  
+  // Limit max bubbles
+  while (waterCoolerBubbles.length > 8) {
+    waterCoolerBubbles.shift();
+  }
+}
+
+// ============================================================================
+// Coffee Machine with Steam Animation
+// ============================================================================
+
+function drawCoffeeSteam(timestamp) {
+  const { x, y, w, h } = getOfficeBounds();
+  
+  // Coffee machine position (kitchen)
+  const coffeeX = x + w * 0.05 + w * 0.28 * 0.1;
+  const coffeeY = y + h * 0.05 + h * 0.9 * 0.45 * 0.1;
+  const coffeeW = w * 0.28 * 0.3;
+  const coffeeH = h * 0.9 * 0.45 * 0.15;
+  
+  // Update steam particles
+  if (Math.random() < 0.1) {
+    coffeeSteamParticles.push({
+      x: coffeeX + coffeeW * 0.3 + Math.random() * coffeeW * 0.4,
+      y: coffeeY,
+      size: 3 + Math.random() * 4,
+      alpha: 0.6,
+      speedY: -0.5 - Math.random() * 0.5,
+      drift: (Math.random() - 0.5) * 0.5
+    });
+  }
+  
+  // Update and draw steam
+  coffeeSteamParticles.forEach((particle, index) => {
+    particle.y += particle.speedY;
+    particle.x += particle.drift;
+    particle.alpha -= 0.008;
+    particle.size *= 0.98;
+    
+    if (particle.alpha <= 0 || particle.size < 0.5) {
+      coffeeSteamParticles.splice(index, 1);
+    } else {
+      ctx.fillStyle = `rgba(200, 200, 200, ${particle.alpha})`;
+      ctx.beginPath();
+      ctx.arc(particle.x, particle.y, particle.size * scale, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  });
+  
+  // Limit particles
+  while (coffeeSteamParticles.length > 15) {
+    coffeeSteamParticles.shift();
   }
 }
 
