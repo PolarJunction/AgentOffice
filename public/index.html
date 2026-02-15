@@ -434,6 +434,7 @@
   <button id="trophy-case-btn" class="trophy-case-btn" title="Trophy Case">🏆</button>
   <button id="sound-toggle" class="sound-toggle" title="Toggle Sound">🔇</button>
   <script src="sound-system.js"></script>
+  <script src="tile-renderer.js"></script>
   <script src="app.js"></script>
   <script src="sprites.js"></script>
   <script src="mood-system.js"></script>
@@ -442,6 +443,13 @@
   <script>
     // Initialize sprites after DOM and scripts are loaded
     document.addEventListener('DOMContentLoaded', () => {
+      // Initialize tile renderer first
+      if (window.initTileRenderer) {
+        window.initTileRenderer().then(() => {
+          console.log('Tile renderer ready');
+        });
+      }
+
       // Characters are now ready to be drawn
       if (window.drawCharacters) {
         window.drawCharacters();

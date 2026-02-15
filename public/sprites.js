@@ -9,7 +9,7 @@ function getMinWidth() { return window.MIN_WIDTH || 1200; }
 function getMinHeight() { return window.MIN_HEIGHT || 800; }
 
 // Walking speed (units per millisecond) - adjustable
-const WALKING_SPEED = 0.0008;
+const WALKING_SPEED = 0.0002;
 
 // Character states for the state machine
 const CharacterStates = {
@@ -46,7 +46,8 @@ const Waypoints = {
   ZERO3_DESK: { x: 0.76, y: 0.40 },
   DELTA_DESK: { x: 0.72, y: 0.12 },
   BESTIE_DESK: { x: 0.22, y: 0.62 },
-  DEXTER_DESK: { x: 0.78, y: 0.62 }
+  DEXTER_DESK: { x: 0.78, y: 0.62 },
+  FLASH_DESK: { x: 0.88, y: 0.62 }
 };
 
 // Define paths from lounge to each desk
@@ -113,6 +114,15 @@ const PATHS = {
     Waypoints.HALLWAY_RIGHT,
     Waypoints.HALLWAY_TO_DESKS,
     Waypoints.DEXTER_DESK
+  ],
+  flash: [
+    Waypoints.LOUNGE_ENTER,
+    Waypoints.LOUNGE_EXIT,
+    Waypoints.HALLWAY_LEFT,
+    Waypoints.HALLWAY_CENTER,
+    Waypoints.HALLWAY_RIGHT,
+    Waypoints.HALLWAY_TO_DESKS,
+    Waypoints.FLASH_DESK
   ]
 };
 
@@ -124,7 +134,8 @@ const PATHS_TO_LOUNGE = {
   zero3: [...PATHS.zero3].reverse(),
   delta: [...PATHS.delta].reverse(),
   bestie: [...PATHS.bestie].reverse(),
-  dexter: [...PATHS.dexter].reverse()
+  dexter: [...PATHS.dexter].reverse(),
+  flash: [...PATHS.flash].reverse()
 };
 
 // Linear interpolation function
@@ -322,6 +333,28 @@ const CHARACTERS = [
     path: null,
     pathProgress: 0,
     pathLength: 0
+  },
+  {
+    id: 'flash',
+    name: 'Flash',
+    color: '#ff6b6b',
+    position: 'flex_desk_2',
+    // Positioned in lounge initially
+    offsetX: 0.20,
+    offsetY: 0.75,
+    // Specific desk coordinates for Flash flex desk (right side)
+    deskX: 0.88,
+    deskY: 0.62,
+    // State machine properties
+    state: CharacterStates.IDLE,
+    frame: 0,
+    targetX: 0.20,
+    targetY: 0.75,
+    baseColor: '#ff6b6b',
+    // Pathfinding properties
+    path: null,
+    pathProgress: 0,
+    pathLength: 0
   }
 ];
 
@@ -337,7 +370,8 @@ const FRAME_DURATION = 500;
 // Returns coordinates in the transformed space (centered at origin)
 function getOfficeBounds() {
   // Guard: ensure canvas is initialized before use
-  if (!canvas || !canvas.width || !canvas.height) {
+  const c = typeof canvas !== 'undefined' ? canvas : (typeof window.canvas !== 'undefined' ? window.canvas : null);
+  if (!c || !c.width || !c.height) {
     return { cx: 0, cy: 0, w: getMinWidth(), h: getMinHeight(), x: 0, y: 0, scale: 1 };
   }
   const w = getMinWidth() * scale;
@@ -454,9 +488,58 @@ function updateCharacterFrame(character, deltaTime) {
   }
 }
 
+// Idle wandering - make characters wander around the lounge/kitchen area
+function updateIdleWandering(character, deltaTime) {
+  if (character.state !== CharacterStates.IDLE) return;
+
+  // Initialize wander timer if not set
+  if (!character.wanderTimer) {
+    character.wanderTimer = 0;
+    character.wanderTargetX = character.offsetX;
+    character.wanderTargetY = character.offsetY;
+  }
+
+  character.wanderTimer += deltaTime;
+
+  // Change wander target every 2-4 seconds (faster wandering)
+  const wanderInterval = 2000 + Math.random() * 2000;
+  if (character.wanderTimer > wanderInterval) {
+    character.wanderTimer = 0;
+    // Pick a random position - split between lounge and kitchen
+    const loungePositions = [
+      { x: 0.08, y: 0.55 },  // Near couch
+      { x: 0.15, y: 0.65 },  // Lounge center
+      { x: 0.08, y: 0.75 },  // Near plant
+      { x: 0.18, y: 0.80 },  // Coffee table area
+      { x: 0.12, y: 0.50 },  // Near kitchen
+      { x: 0.05, y: 0.45 },  // Kitchen counter left
+      { x: 0.10, y: 0.40 },  // Kitchen center
+      { x: 0.05, y: 0.55 },  // Kitchen coffee area
+      { x: 0.20, y: 0.45 }    // Kitchen / lounge transition
+    ];
+    const pos = loungePositions[Math.floor(Math.random() * loungePositions.length)];
+    character.wanderTargetX = pos.x;
+    character.wanderTargetY = pos.y;
+  }
+
+  // Move toward wander target (faster than before)
+  const wanderSpeed = 0.00015 * deltaTime;
+  const dx = character.wanderTargetX - character.offsetX;
+  const dy = character.wanderTargetY - character.offsetY;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+
+  if (dist > 0.003) {
+    character.offsetX += (dx / dist) * wanderSpeed * Math.min(dist, 0.08);
+    character.offsetY += (dy / dist) * wanderSpeed * Math.min(dist, 0.08);
+  }
+}
+
 // Update character position along waypoint path (using linear interpolation)
 function updateCharacterPosition(character, deltaTime) {
-  if (character.state === CharacterStates.WALKING_TO_DESK || 
+  // First handle idle wandering
+  updateIdleWandering(character, deltaTime);
+
+  if (character.state === CharacterStates.WALKING_TO_DESK ||
       character.state === CharacterStates.WALKING_TO_LOUNGE) {
     
     // Use path system for movement
@@ -554,42 +637,66 @@ function getStateColor(character) {
 function getFrameOffset(character) {
   const frame = character.frame;
   const state = character.state;
-  
+
   if (state === CharacterStates.WALKING_TO_DESK || state === CharacterStates.WALKING_TO_LOUNGE) {
     // Walking - vertical bounce
-    return [0, -3, 0][frame] * scale;
+    return [0, -4, 0][frame] * scale;
   } else if (state === CharacterStates.WORKING) {
     // Working - slight vertical movement
+    return [0, -2, 0][frame] * scale;
+  } else if (state === CharacterStates.IDLE) {
+    // Idle - subtle breathing animation
     return [0, -1, 0][frame] * scale;
   }
-  
+
   return 0;
 }
 
 // Draw a single character sprite
-function drawCharacter(character, deltaTime) {
-  const { x, y, w, h, scale } = getOfficeBounds();
-  
+// Optional bounds parameter for tile-based rendering
+function drawCharacter(character, deltaTime, bounds = null) {
+  const officeBounds = bounds || getOfficeBounds();
+  const { x, y, w, h, scale } = officeBounds;
+
   // Update animation
   updateCharacterFrame(character, deltaTime);
   updateCharacterPosition(character, deltaTime);
-  
+
   // Calculate character position based on their current offset
   const charX = x + w * character.offsetX;
   const charY = y + h * character.offsetY;
-  
+
+  // Get frame for animation
+  const frame = character.frame || 0;
+
+  // Use tile-renderer pixel art if available, otherwise fallback to simple rendering
+  if (window.drawCharacterSprite) {
+    window.drawCharacterSprite(ctx, character.id, charX, charY, scale, frame);
+
+    // Draw name label above character
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `bold ${10 * scale}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    const frameOffset = getFrameOffset(character);
+    ctx.fillText(character.name, charX, charY - SPRITE_HEIGHT * scale / 2 - 4 * scale + frameOffset);
+    ctx.textBaseline = 'alphabetic';
+    return;
+  }
+
+  // Fallback: simple square rendering
   // Scale sprite size
   const spriteW = SPRITE_WIDTH * scale;
   const spriteH = SPRITE_HEIGHT * scale;
-  
+
   // Get state-based color and offset
   const stateColor = getStateColor(character);
   const frameOffset = getFrameOffset(character);
-  
+
   // Draw character body with state-based color
   ctx.fillStyle = stateColor;
   ctx.fillRect(charX - spriteW / 2, charY - spriteH / 2 + frameOffset, spriteW, spriteH);
-  
+
   // Draw character border
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = 2 * scale;
@@ -619,9 +726,13 @@ function drawCharacter(character, deltaTime) {
 }
 
 // Draw all characters on the canvas
-function drawCharacters(deltaTime = 16) {
+// Optional bounds parameter for tile-based rendering
+function drawCharacters(deltaTime = 16, bounds = null) {
+  // If bounds provided (tile-based), use them; otherwise use getOfficeBounds
+  const officeBounds = bounds || getOfficeBounds();
+
   CHARACTERS.forEach(character => {
-    drawCharacter(character, deltaTime);
+    drawCharacter(character, deltaTime, officeBounds);
   });
 }
 

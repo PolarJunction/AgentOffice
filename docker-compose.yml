@@ -5,6 +5,11 @@ services:
     build: .
     ports:
       - "3004:3004"
+    environment:
+      - OPENCLAW_LOG_PATH=/app/logs/openclaw.log
     volumes:
       - ./public:/app/public
+      - /tmp/openclaw:/app/logs:ro
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

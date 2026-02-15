@@ -504,9 +504,71 @@ function updateScaleIndicator() {
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
-// Draw the office layout
-function draw(timestamp = 0) {
+// Tile-based rendering function
+function drawTileBased(timestamp = 0, deltaTime = 16) {
   animationTimestamp = timestamp;
+
+  // Clear canvas with background
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Apply day/night ambient overlay
+  const ambient = getAmbientOverlay();
+  ctx.fillStyle = ambient.color;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Calculate scale to fit tile-based office in window
+  const TILE_SIZE = window.TILE_SIZE || 16;
+  const MAP_WIDTH = window.MAP_WIDTH || 50;
+  const MAP_HEIGHT = window.MAP_HEIGHT || 40;
+  const officePixelWidth = MAP_WIDTH * TILE_SIZE;
+  const officePixelHeight = MAP_HEIGHT * TILE_SIZE;
+  const padding = 60;
+  const availableWidth = canvas.width - padding * 2;
+  const availableHeight = canvas.height - padding * 2;
+  const tileScale = Math.min(availableWidth / officePixelWidth, availableHeight / officePixelHeight);
+
+  // Center the office
+  const officeRenderWidth = officePixelWidth * tileScale;
+  const officeRenderHeight = officePixelHeight * tileScale;
+  const officeX = (canvas.width - officeRenderWidth) / 2 + panX;
+  const officeY = (canvas.height - officeRenderHeight) / 2 + panY;
+
+  // Apply zoom scale
+  const finalScale = tileScale * scale;
+
+  // Render tile-based office
+  window.renderOfficeMap(ctx, officeX, officeY, finalScale);
+
+  // Draw character sprites on top
+  if (window.drawCharacters) {
+    window.drawCharacters(deltaTime, { x: officeX, y: officeY, w: officeRenderWidth, h: officeRenderHeight, scale: finalScale });
+  }
+
+  // Time display
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '14px Arial';
+  ctx.textAlign = 'left';
+  ctx.fillText(getTimeDisplay(), 20, 30);
+
+  // Lighting state indicator
+  const lightingState = getLightingState();
+  const stateLabel = lightingState.charAt(0).toUpperCase() + lightingState.slice(1);
+  ctx.fillStyle = lightingState === 'night' ? '#8888ff' : lightingState === 'evening' ? '#ffaa55' : '#ffff88';
+  ctx.fillText(stateLabel, 20, 50);
+}
+
+// Draw the office layout
+function draw(timestamp = 0, deltaTime = 16) {
+  animationTimestamp = timestamp;
+
+  // Try tile-based rendering first (if available)
+  if (window.renderOfficeMap && window.TILE_SIZE) {
+    drawTileBased(timestamp, deltaTime);
+    return;
+  }
+
+  // Fallback to original canvas rendering
   // Office dimensions
   const w = MIN_WIDTH * scale;
   const h = MIN_HEIGHT * scale;
@@ -529,17 +591,17 @@ function draw(timestamp = 0) {
   ctx.save();
   ctx.translate(panX + cx, panY + cy);
 
-  // Office outer walls
-  ctx.strokeStyle = COLORS.wallOutline;
-  ctx.lineWidth = 4 * scale;
+  // Office outer walls (subtle border)
+  ctx.strokeStyle = '#3a3a5a';
+  ctx.lineWidth = 2 * scale;
   ctx.strokeRect(x, y, w, h);
-  
+
   // Hallway (center connecting left and right)
   const hallwayY = y + h * 0.35;
   const hallwayH = h * 0.3;
   ctx.fillStyle = COLORS.hallway;
   ctx.fillRect(x + w * 0.3, hallwayY, w * 0.4, hallwayH);
-  
+
   // LEFT SIDE - Kitchen/Lounge Area
   const leftX = x + w * 0.02;
   const leftW = w * 0.28;
@@ -810,10 +872,15 @@ function draw(timestamp = 0) {
   // Draw ambient animations (Phase 4)
   drawAmbientAnimations(timestamp);
   
-  // Draw day/night elements (desk lamps, window)
+  // Draw day/night elements (desk lamps only)
   const bounds = getOfficeBounds();
   drawDeskLamps(bounds.x, bounds.y, bounds.w, bounds.h);
-  drawWindow(bounds.x, bounds.y, bounds.w, bounds.h);
+
+  // Draw character sprites on top of the office layout (inside pan/zoom transform)
+  // Pass deltaTime for smooth animation updates
+  if (window.drawCharacters) {
+    window.drawCharacters(deltaTime);
+  }
 
   // Restore context (end of pan transformation)
   ctx.restore();
@@ -829,11 +896,6 @@ function draw(timestamp = 0) {
   const stateLabel = lightingState.charAt(0).toUpperCase() + lightingState.slice(1);
   ctx.fillStyle = lightingState === 'night' ? '#8888ff' : lightingState === 'evening' ? '#ffaa55' : '#ffff88';
   ctx.fillText(stateLabel, 20, 50);
-
-  // Draw character sprites on top of the office layout
-  if (window.drawCharacters) {
-    window.drawCharacters();
-  }
 }
 
 // Animation loop for state machine
@@ -844,9 +906,9 @@ const STATE_CYCLE_INTERVAL = 5000; // 5 seconds
 function gameLoop(timestamp) {
   const deltaTime = timestamp - lastTime;
   lastTime = timestamp;
-  
-  // Redraw the office (pass timestamp for animations)
-  draw(timestamp);
+
+  // Redraw the office (pass both timestamp and deltaTime for animations)
+  draw(timestamp, deltaTime);
   
   // Update and draw visual effects (Phase 4)
   if (window.updateCoffeeSteam) {
@@ -854,11 +916,6 @@ function gameLoop(timestamp) {
   }
   if (window.drawCoffeeSteam) {
     window.drawCoffeeSteam();
-  }
-  
-  // Update character animations with deltaTime
-  if (window.drawCharacters) {
-    window.drawCharacters(deltaTime);
   }
   
   // Draw typing particles and monitor glow for working characters
@@ -984,7 +1041,8 @@ const API_TO_CHARACTER_MAP = {
   'zero-3': 'zero3',
   'delta': 'delta',
   'bestie': 'bestie',
-  'dexter': 'dexter'
+  'dexter': 'dexter',
+  'flash': 'flash'
 };
 
 // Start polling /api/status for live agent updates
@@ -1045,7 +1103,7 @@ function processAgentStatus(agents) {
     // Only react to state CHANGES (not every poll)
     if (prevState !== undefined && prevState !== agent.state) {
       // State changed! Trigger transition
-      if (agent.state === 'working' && currentState !== states.WORKING && 
+      if (agent.state === 'working' && currentState !== states.WORKING &&
           currentState !== states.WALKING_TO_DESK) {
         // Agent started working - walk to desk
         window.setCharacterState(characterId, states.WALKING_TO_DESK);
@@ -1059,7 +1117,7 @@ function processAgentStatus(agents) {
         if (window.onAgentStart) {
           window.onAgentStart(character);
         }
-      } else if (agent.state === 'idle' && currentState === states.WORKING) {
+      } else if (agent.state === 'idle' && (currentState === states.WORKING || currentState === states.WALKING_TO_DESK)) {
         // Agent stopped working - walk back to lounge
         window.setCharacterState(characterId, states.WALKING_TO_LOUNGE);
         // Show speech bubble for completing task
@@ -1073,6 +1131,9 @@ function processAgentStatus(agents) {
           window.onTaskComplete(character);
         }
       }
+    } else if (prevState === undefined && agent.state === 'idle') {
+      // Initial state - agent is idle, send to lounge
+      window.setCharacterState(characterId, states.WALKING_TO_LOUNGE);
     }
     
     // Store current state for next comparison
@@ -1327,18 +1388,10 @@ function drawSwayingPlants(timestamp) {
   });
 }
 
-// Fluorescent light flicker effect
+// Fluorescent light flicker effect (disabled for now)
 function drawLightFlicker(timestamp) {
-  // Only flicker occasionally (every ~10-30 seconds)
-  const flickerChance = Math.sin(timestamp / 15000) > 0.95;
-  const flickerIntensity = flickerChance ? Math.random() * 0.15 : 0;
-  
-  if (flickerIntensity > 0) {
-    // Apply subtle overlay to simulate light flicker
-    const { x, y, w, h } = getOfficeBounds();
-    ctx.fillStyle = `rgba(200, 200, 255, ${flickerIntensity})`;
-    ctx.fillRect(x, y, w, h);
-  }
+  // Temporarily disabled - can re-enable if needed
+  return;
 }
 
 // ============================================================================
@@ -1693,45 +1746,6 @@ function drawDeskLamps(x, y, w, h) {
       ctx.fill();
     }
   });
-}
-
-// Draw window with sky color
-function drawWindow(x, y, w, h) {
-  // Window position (back wall of office)
-  const windowX = x + w * 0.35;
-  const windowY = y + h * 0.15;
-  const windowW = w * 0.25;
-  const windowH = h * 0.35;
-  
-  // Get sky color based on time
-  const skyColor = getSkyColor();
-  
-  // Window frame
-  ctx.fillStyle = '#5a5a7a';
-  ctx.fillRect(windowX - 4 * scale, windowY - 4 * scale, windowW + 8 * scale, windowH + 8 * scale);
-  
-  // Window glass with sky color
-  ctx.fillStyle = skyColor;
-  ctx.fillRect(windowX, windowY, windowW, windowH);
-  
-  // Window cross bars
-  ctx.strokeStyle = '#6a6a8a';
-  ctx.lineWidth = 3 * scale;
-  ctx.beginPath();
-  ctx.moveTo(windowX + windowW / 2, windowY);
-  ctx.lineTo(windowX + windowW / 2, windowY + windowH);
-  ctx.moveTo(windowX, windowY + windowH / 2);
-  ctx.lineTo(windowX + windowW, windowY + windowH / 2);
-  ctx.stroke();
-  
-  // Add subtle glow at night from window
-  if (getLightingState() === LIGHTING_STATES.NIGHT) {
-    const gradient = ctx.createLinearGradient(windowX, windowY, windowX - 30 * scale, windowY);
-    gradient.addColorStop(0, 'rgba(30, 30, 80, 0.3)');
-    gradient.addColorStop(1, 'rgba(30, 30, 80, 0)');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(windowX - 30 * scale, windowY, 30 * scale, windowH);
-  }
 }
 
 // Update monitor colors based on time of day
