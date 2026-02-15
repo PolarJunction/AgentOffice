@@ -2536,12 +2536,12 @@ function setupProductivityDashboard() {
   
   // Initialize heatmap grid
   initHeatmapGrid();
-  
+
   // Update stats every 5 seconds
-  setInterval(updateProductivityStats, 5000);
-  
+  setInterval(window.updateProductivityStats, 5000);
+
   // Initial render
-  updateProductivityStats();
+  window.updateProductivityStats();
 }
 
 // Initialize heatmap grid cells
