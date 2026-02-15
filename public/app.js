@@ -1,5 +1,6 @@
 // AgentOffice - Office Floor Plan Canvas Rendering
 const canvas = document.getElementById('office');
+window.canvas = canvas;
 const ctx = canvas.getContext('2d');
 
 // Animation timestamp for requestAnimationFrame
