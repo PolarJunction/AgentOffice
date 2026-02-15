@@ -653,8 +653,10 @@ function getFrameOffset(character) {
 }
 
 // Draw a single character sprite
-function drawCharacter(character, deltaTime) {
-  const { x, y, w, h, scale } = getOfficeBounds();
+// Optional bounds parameter for tile-based rendering
+function drawCharacter(character, deltaTime, bounds = null) {
+  const officeBounds = bounds || getOfficeBounds();
+  const { x, y, w, h, scale } = officeBounds;
   
   // Update animation
   updateCharacterFrame(character, deltaTime);
@@ -705,9 +707,13 @@ function drawCharacter(character, deltaTime) {
 }
 
 // Draw all characters on the canvas
-function drawCharacters(deltaTime = 16) {
+// Optional bounds parameter for tile-based rendering
+function drawCharacters(deltaTime = 16, bounds = null) {
+  // If bounds provided (tile-based), use them; otherwise use getOfficeBounds
+  const officeBounds = bounds || getOfficeBounds();
+
   CHARACTERS.forEach(character => {
-    drawCharacter(character, deltaTime);
+    drawCharacter(character, deltaTime, officeBounds);
   });
 }
 

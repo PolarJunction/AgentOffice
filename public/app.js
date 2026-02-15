@@ -504,9 +504,71 @@ function updateScaleIndicator() {
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
+// Tile-based rendering function
+function drawTileBased(timestamp = 0, deltaTime = 16) {
+  animationTimestamp = timestamp;
+
+  // Clear canvas with background
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Apply day/night ambient overlay
+  const ambient = getAmbientOverlay();
+  ctx.fillStyle = ambient.color;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Calculate scale to fit tile-based office in window
+  const TILE_SIZE = window.TILE_SIZE || 16;
+  const MAP_WIDTH = window.MAP_WIDTH || 50;
+  const MAP_HEIGHT = window.MAP_HEIGHT || 40;
+  const officePixelWidth = MAP_WIDTH * TILE_SIZE;
+  const officePixelHeight = MAP_HEIGHT * TILE_SIZE;
+  const padding = 60;
+  const availableWidth = canvas.width - padding * 2;
+  const availableHeight = canvas.height - padding * 2;
+  const tileScale = Math.min(availableWidth / officePixelWidth, availableHeight / officePixelHeight);
+
+  // Center the office
+  const officeRenderWidth = officePixelWidth * tileScale;
+  const officeRenderHeight = officePixelHeight * tileScale;
+  const officeX = (canvas.width - officeRenderWidth) / 2 + panX;
+  const officeY = (canvas.height - officeRenderHeight) / 2 + panY;
+
+  // Apply zoom scale
+  const finalScale = tileScale * scale;
+
+  // Render tile-based office
+  window.renderOfficeMap(ctx, officeX, officeY, finalScale);
+
+  // Draw character sprites on top
+  if (window.drawCharacters) {
+    window.drawCharacters(deltaTime, { x: officeX, y: officeY, w: officeRenderWidth, h: officeRenderHeight, scale: finalScale });
+  }
+
+  // Time display
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '14px Arial';
+  ctx.textAlign = 'left';
+  ctx.fillText(getTimeDisplay(), 20, 30);
+
+  // Lighting state indicator
+  const lightingState = getLightingState();
+  const stateLabel = lightingState.charAt(0).toUpperCase() + lightingState.slice(1);
+  ctx.fillStyle = lightingState === 'night' ? '#8888ff' : lightingState === 'evening' ? '#ffaa55' : '#ffff88';
+  ctx.fillText(stateLabel, 20, 50);
+}
+
 // Draw the office layout
 function draw(timestamp = 0, deltaTime = 16) {
   animationTimestamp = timestamp;
+
+  // Try tile-based rendering first (if available)
+  if (window.renderOfficeMap && window.TILE_SIZE) {
+    drawTileBased(timestamp, deltaTime);
+    return;
+  }
+
+  // Fallback to original canvas rendering
   // Office dimensions
   const w = MIN_WIDTH * scale;
   const h = MIN_HEIGHT * scale;
@@ -533,13 +595,13 @@ function draw(timestamp = 0, deltaTime = 16) {
   ctx.strokeStyle = '#3a3a5a';
   ctx.lineWidth = 2 * scale;
   ctx.strokeRect(x, y, w, h);
-  
+
   // Hallway (center connecting left and right)
   const hallwayY = y + h * 0.35;
   const hallwayH = h * 0.3;
   ctx.fillStyle = COLORS.hallway;
   ctx.fillRect(x + w * 0.3, hallwayY, w * 0.4, hallwayH);
-  
+
   // LEFT SIDE - Kitchen/Lounge Area
   const leftX = x + w * 0.02;
   const leftW = w * 0.28;
