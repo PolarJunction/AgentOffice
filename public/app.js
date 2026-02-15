@@ -524,6 +524,8 @@ function draw(timestamp = 0) {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // Apply pan transformation
+  const cx = window.innerWidth / 2;
+  const cy = window.innerHeight / 2;
   ctx.save();
   ctx.translate(panX + cx, panY + cy);
   
