@@ -2107,6 +2107,10 @@ window.awardTaskComplete = function(taskTimeSeconds) {
     achievementState.stats.fastestTaskTime = taskTimeSeconds;
   }
   checkAchievements();
+  // Update productivity dashboard
+  if (window.updateProductivityStats) {
+    window.updateProductivityStats();
+  }
 };
 
 window.awardError = function() {
@@ -2443,6 +2447,200 @@ if (window.initializeOfficeEvents) {
 // Initialize timeline (Phase 6)
 setupTimelineToggle();
 renderTimeline();
+
+// Initialize productivity dashboard (Phase 8)
+setupProductivityDashboard();
+
+// ============================================================================
+// Productivity Dashboard (Phase 8)
+// ============================================================================
+
+// Productivity state
+const productivityState = {
+  dailyTasksCompleted: 0,
+  weeklyLeaderboard: [],
+  deskUsageHeatmap: Array(16).fill(0), // 4x4 grid for 16 desks
+  totalAgents: 8
+};
+
+// Initialize productivity dashboard
+function setupProductivityDashboard() {
+  const toggleBtn = document.getElementById('productivity-toggle');
+  const panel = document.getElementById('productivity-panel');
+  
+  if (toggleBtn && panel) {
+    toggleBtn.addEventListener('click', () => {
+      panel.classList.toggle('collapsed');
+      toggleBtn.textContent = panel.classList.contains('collapsed') ? '▶' : '◀';
+    });
+  }
+  
+  // Initialize heatmap grid
+  initHeatmapGrid();
+  
+  // Update stats every 5 seconds
+  setInterval(updateProductivityStats, 5000);
+  
+  // Initial render
+  updateProductivityStats();
+}
+
+// Initialize heatmap grid cells
+function initHeatmapGrid() {
+  const grid = document.getElementById('heatmap-grid');
+  if (!grid) return;
+  
+  grid.innerHTML = '';
+  for (let i = 0; i < 7; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'heatmap-cell';
+    cell.id = 'heatmap-cell-' + i;
+    const deskNames = ['Nova', 'Zero-1', 'Zero-2', 'Zero-3', 'Zero-4', 'Delta', 'Echo'];
+    cell.title = deskNames[i] || 'Desk ' + (i + 1);
+    grid.appendChild(cell);
+  }
+}
+
+// Update productivity stats display
+window.updateProductivityStats = function() {
+  // Get task count from achievement state
+  const tasksCompleted = achievementState?.stats?.tasksCompleted || 0;
+  
+  // Update tasks completed
+  const tasksEl = document.getElementById('prod-tasks-completed');
+  if (tasksEl) {
+    tasksEl.textContent = tasksCompleted;
+  }
+  
+  // Update tasks subtext with goal progress
+  const tasksSubEl = document.getElementById('prod-tasks-subtext');
+  if (tasksSubEl) {
+    const dailyGoal = 5;
+    const progress = Math.min((tasksCompleted / dailyGoal) * 100, 100);
+    tasksSubEl.textContent = `Goal: ${dailyGoal} tasks (${Math.round(progress)}%)`;
+  }
+  
+  // Count active agents (agents with currentTask from CHARACTERS)
+  let activeAgents = 0;
+  if (window.CHARACTERS) {
+    activeAgents = window.CHARACTERS.filter(c => c.currentTask).length;
+  }
+  
+  const activeEl = document.getElementById('prod-active-agents');
+  if (activeEl) {
+    activeEl.textContent = activeAgents;
+  }
+  
+  // Calculate busyness percentage
+  const totalAgents = window.CHARACTERS ? window.CHARACTERS.length : productivityState.totalAgents;
+  const busynessPercent = totalAgents > 0 ? Math.round((activeAgents / totalAgents) * 100) : 0;
+  
+  const busynessEl = document.getElementById('prod-busyness');
+  const busynessFill = document.getElementById('prod-busyness-fill');
+  if (busynessEl) {
+    busynessEl.textContent = busynessPercent + '%';
+  }
+  if (busynessFill) {
+    busynessFill.style.width = busynessPercent + '%';
+  }
+  
+  // Update heatmap based on actual agent positions
+  updateHeatmapFromAgents();
+  
+  // Update leaderboard
+  updateLeaderboard();
+};
+
+// Update heatmap based on current agent positions
+function updateHeatmapFromAgents() {
+  if (!window.CHARACTERS || !window.CharacterStates) return;
+  
+  // Map characters to their desk indices based on their position
+  const deskMap = {
+    'nova': 0,
+    'zero1': 1,
+    'zero2': 2,
+    'zero3': 3,
+    'zero4': 4,
+    'delta': 5,
+    'echo': 6
+  };
+  
+  // Count agent desk usage from CHARACTERS - who's at their desk (WORKING state)
+  const heatmap = Array(7).fill(0);
+  
+  window.CHARACTERS.forEach(character => {
+    if (character.state === CharacterStates.WORKING) {
+      const deskIndex = deskMap[character.id];
+      if (deskIndex !== undefined) {
+        heatmap[deskIndex] = 1; // Agent is at this desk working
+      }
+    }
+  });
+  
+  // Update heatmap cells (only show first 7 for actual desks)
+  const maxUsage = 1;
+  for (let i = 0; i < 7; i++) {
+    const cell = document.getElementById('heatmap-cell-' + i);
+    if (cell) {
+      if (heatmap[i] === 0) {
+        cell.style.background = 'rgba(40, 40, 60, 0.6)';
+      } else {
+        // Green for active
+        cell.style.background = 'rgba(64, 192, 112, 0.8)';
+      }
+    }
+  }
+}
+
+// Update leaderboard display
+function updateLeaderboard() {
+  const leaderboardEl = document.getElementById('leaderboard-list');
+  if (!leaderboardEl) return;
+  
+  // Build leaderboard from CHARACTERS - use mood.tasksCompleted
+  let agents = [];
+  if (window.CHARACTERS) {
+    agents = window.CHARACTERS.map(character => ({
+      name: character.name,
+      tasksCompleted: character.mood?.tasksCompleted || 0
+    }));
+  }
+  
+  // Sort by tasks completed (descending)
+  agents.sort((a, b) => b.tasksCompleted - a.tasksCompleted);
+  
+  // Take top 5
+  const top5 = agents.slice(0, 5);
+  
+  if (top5.length === 0) {
+    leaderboardEl.innerHTML = '<div style="color: #606080; text-align: center; padding: 10px;">No data yet</div>';
+    return;
+  }
+  
+  const rankClasses = ['gold', 'silver', 'bronze'];
+  leaderboardEl.innerHTML = top5.map((agent, index) => `
+    <div class="leaderboard-item">
+      <div class="leaderboard-rank ${index < 3 ? rankClasses[index] : ''}">${index + 1}</div>
+      <div class="leaderboard-name">${agent.name}</div>
+      <div class="leaderboard-score">${agent.tasksCompleted} tasks</div>
+    </div>
+  `).join('');
+}
+
+// Add desk usage when agent sits
+function recordDeskUsage(agentName, deskIndex) {
+  if (deskIndex >= 0 && deskIndex < 16) {
+    productivityState.deskUsageHeatmap[deskIndex]++;
+  }
+}
+
+// Initialize productivity dashboard on load
+if (typeof window !== 'undefined') {
+  window.setupProductivityDashboard = setupProductivityDashboard;
+  window.updateProductivityStats = window.updateProductivityStats;
+  window.recordDeskUsage = recordDeskUsage;
+}
 
 // Add click handler for agent info
 // Add click handler for agent info (desktop)

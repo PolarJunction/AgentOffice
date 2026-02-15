@@ -173,10 +173,205 @@
       padding: 30px 10px;
       font-size: 12px;
     }
+    
+    /* Productivity Dashboard - Phase 8 */
+    .productivity-panel {
+      position: fixed;
+      top: 20px;
+      left: 0;
+      width: 300px;
+      height: calc(100% - 40px);
+      background: rgba(20, 20, 35, 0.95);
+      border-right: 2px solid #3a3a5a;
+      border-radius: 0 8px 8px 0;
+      display: flex;
+      flex-direction: column;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      transition: transform 0.3s ease;
+      z-index: 100;
+    }
+    
+    .productivity-panel.collapsed {
+      transform: translateX(-260px);
+    }
+    
+    .productivity-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 15px;
+      background: rgba(60, 60, 90, 0.8);
+      border-bottom: 1px solid #4a4a6a;
+      border-radius: 0 8px 0 0;
+    }
+    
+    .productivity-title {
+      color: #e0e0f0;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    
+    .productivity-toggle {
+      background: none;
+      border: none;
+      color: #a0a0c0;
+      cursor: pointer;
+      font-size: 12px;
+      padding: 4px 8px;
+      transition: color 0.2s;
+    }
+    
+    .productivity-toggle:hover {
+      color: #ffffff;
+    }
+    
+    .productivity-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 15px;
+    }
+    
+    .stat-card {
+      background: rgba(40, 40, 60, 0.6);
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 12px;
+      border-left: 3px solid #6a8afa;
+    }
+    
+    .stat-label {
+      color: #808090;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 5px;
+    }
+    
+    .stat-value {
+      color: #ffffff;
+      font-size: 28px;
+      font-weight: bold;
+    }
+    
+    .stat-subtext {
+      color: #606080;
+      font-size: 11px;
+      margin-top: 4px;
+    }
+    
+    .busyness-meter {
+      height: 8px;
+      background: rgba(40, 40, 60, 0.8);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    
+    .busyness-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #40c070, #f0c040, #e04050);
+      transition: width 0.5s ease;
+      border-radius: 4px;
+    }
+    
+    .leaderboard-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      background: rgba(40, 40, 60, 0.4);
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+    
+    .leaderboard-rank {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(100, 100, 140, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+      margin-right: 10px;
+    }
+    
+    .leaderboard-rank.gold { background: linear-gradient(135deg, #FFD700, #FFA500); color: #1a1a2e; }
+    .leaderboard-rank.silver { background: linear-gradient(135deg, #C0C0C0, #A0A0A0); color: #1a1a2e; }
+    .leaderboard-rank.bronze { background: linear-gradient(135deg, #CD7F32, #A0522D); color: #1a1a2e; }
+    
+    .leaderboard-name {
+      flex: 1;
+      color: #c0c0e0;
+      font-size: 13px;
+    }
+    
+    .leaderboard-score {
+      color: #40c070;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    
+    .heatmap-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      margin-top: 10px;
+    }
+    
+    .heatmap-cell {
+      aspect-ratio: 1;
+      border-radius: 4px;
+      background: rgba(40, 40, 60, 0.6);
+      transition: background 0.3s;
+    }
   </style>
 </head>
 <body>
   <canvas id="office"></canvas>
+  <div id="productivity-panel" class="productivity-panel">
+    <div class="productivity-header">
+      <span class="productivity-title">📊 Productivity</span>
+      <button id="productivity-toggle" class="productivity-toggle">◀</button>
+    </div>
+    <div id="productivity-content" class="productivity-content">
+      <!-- Tasks Completed -->
+      <div class="stat-card">
+        <div class="stat-label">Tasks Completed Today</div>
+        <div class="stat-value" id="prod-tasks-completed">0</div>
+        <div class="stat-subtext" id="prod-tasks-subtext">Goal: 5 tasks</div>
+      </div>
+      
+      <!-- Active Agents -->
+      <div class="stat-card" style="border-left-color: #40c070;">
+        <div class="stat-label">Active Agents</div>
+        <div class="stat-value" id="prod-active-agents">0</div>
+        <div class="stat-subtext">Currently working</div>
+      </div>
+      
+      <!-- Busyness Meter -->
+      <div class="stat-card" style="border-left-color: #f0c040;">
+        <div class="stat-label">Office Busyness</div>
+        <div class="stat-value" id="prod-busyness">0%</div>
+        <div class="busyness-meter">
+          <div class="busyness-fill" id="prod-busyness-fill" style="width: 0%;"></div>
+        </div>
+      </div>
+      
+      <!-- Desk Heatmap -->
+      <div class="stat-card" style="border-left-color: #6a8afa;">
+        <div class="stat-label">Desk Usage Heatmap</div>
+        <div class="heatmap-grid" id="heatmap-grid"></div>
+      </div>
+      
+      <!-- Leaderboard -->
+      <div class="stat-card" style="border-left-color: #FFD700;">
+        <div class="stat-label">🏆 Weekly Leaderboard</div>
+        <div id="leaderboard-list"></div>
+      </div>
+    </div>
+  </div>
   <div id="timeline-panel" class="timeline-panel">
     <div class="timeline-header">
       <span class="timeline-title">Activity Timeline</span>
