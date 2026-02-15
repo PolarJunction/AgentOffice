@@ -505,7 +505,7 @@ resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
 // Draw the office layout
-function draw(timestamp = 0) {
+function draw(timestamp = 0, deltaTime = 16) {
   animationTimestamp = timestamp;
   // Office dimensions
   const w = MIN_WIDTH * scale;
@@ -815,6 +815,12 @@ function draw(timestamp = 0) {
   drawDeskLamps(bounds.x, bounds.y, bounds.w, bounds.h);
   drawWindow(bounds.x, bounds.y, bounds.w, bounds.h);
 
+  // Draw character sprites on top of the office layout (inside pan/zoom transform)
+  // Pass deltaTime for smooth animation updates
+  if (window.drawCharacters) {
+    window.drawCharacters(deltaTime);
+  }
+
   // Restore context (end of pan transformation)
   ctx.restore();
 
@@ -830,12 +836,6 @@ function draw(timestamp = 0) {
   ctx.fillStyle = lightingState === 'night' ? '#8888ff' : lightingState === 'evening' ? '#ffaa55' : '#ffff88';
   ctx.fillText(stateLabel, 20, 50);
 
-  // Draw character sprites on top of the office layout
-  if (window.drawCharacters) {
-    window.drawCharacters();
-  }
-}
-
 // Animation loop for state machine
 let lastTime = 0;
 let stateCycleTimer = 0;
@@ -844,9 +844,9 @@ const STATE_CYCLE_INTERVAL = 5000; // 5 seconds
 function gameLoop(timestamp) {
   const deltaTime = timestamp - lastTime;
   lastTime = timestamp;
-  
-  // Redraw the office (pass timestamp for animations)
-  draw(timestamp);
+
+  // Redraw the office (pass both timestamp and deltaTime for animations)
+  draw(timestamp, deltaTime);
   
   // Update and draw visual effects (Phase 4)
   if (window.updateCoffeeSteam) {
@@ -854,11 +854,6 @@ function gameLoop(timestamp) {
   }
   if (window.drawCoffeeSteam) {
     window.drawCoffeeSteam();
-  }
-  
-  // Update character animations with deltaTime
-  if (window.drawCharacters) {
-    window.drawCharacters(deltaTime);
   }
   
   // Draw typing particles and monitor glow for working characters

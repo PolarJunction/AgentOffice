@@ -1,12 +1,25 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const GatewayLogParser = require('./gatewayLogParser');
 
 const app = express();
 const PORT = 3004;
 
-// Gateway log file path
-const LOG_PATH = process.env.OPENCLAW_LOG_PATH || '/tmp/openclaw/openclaw-2026-02-14.log';
+// Gateway log file path - support dynamic date or env var
+function getLogPath() {
+  if (process.env.OPENCLAW_LOG_PATH) {
+    return process.env.OPENCLAW_LOG_PATH;
+  }
+  // Default: use today's date
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `/tmp/openclaw/openclaw-${year}-${month}-${day}.log`;
+}
+
+const LOG_PATH = getLogPath();
 
 // Initialize gateway log parser
 const logParser = new GatewayLogParser(LOG_PATH, {
@@ -74,4 +87,22 @@ process.on('SIGINT', () => {
 app.listen(PORT, () => {
   console.log(`AgentOffice server running on port ${PORT}`);
   console.log(`Gateway log parser active, monitoring: ${LOG_PATH}`);
+
+  // Check if log file exists and warn if not
+  if (!fs.existsSync(LOG_PATH)) {
+    console.warn(`WARNING: Log file not found at ${LOG_PATH}`);
+    console.warn('Agent status updates will show agents as idle until gateway logs appear');
+
+    // Try to find any recent log file
+    const logDir = path.dirname(LOG_PATH);
+    if (fs.existsSync(logDir)) {
+      const files = fs.readdirSync(logDir)
+        .filter(f => f.startsWith('openclaw-') && f.endsWith('.log'))
+        .sort()
+        .reverse();
+      if (files.length > 0) {
+        console.log(`Found alternative log file: ${path.join(logDir, files[0])}`);
+      }
+    }
+  }
 });
