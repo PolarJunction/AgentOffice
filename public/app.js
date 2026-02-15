@@ -528,19 +528,7 @@ function draw(timestamp = 0) {
   const cy = window.innerHeight / 2;
   ctx.save();
   ctx.translate(panX + cx, panY + cy);
-  
-  // Draw time display in corner
-  ctx.fillStyle = '#ffffff';
-  ctx.font = `${14 * scale}px Arial`;
-  ctx.textAlign = 'left';
-  ctx.fillText(getTimeDisplay(), 20 * scale, 30 * scale);
-  
-  // Draw lighting state indicator
-  const lightingState = getLightingState();
-  const stateLabel = lightingState.charAt(0).toUpperCase() + lightingState.slice(1);
-  ctx.fillStyle = lightingState === 'night' ? '#8888ff' : lightingState === 'evening' ? '#ffaa55' : '#ffff88';
-  ctx.fillText(stateLabel, 20 * scale, 50 * scale);
-  
+
   // Office outer walls
   ctx.strokeStyle = COLORS.wallOutline;
   ctx.lineWidth = 4 * scale;
@@ -829,6 +817,18 @@ function draw(timestamp = 0) {
 
   // Restore context (end of pan transformation)
   ctx.restore();
+
+  // Draw time display (fixed on screen, not affected by pan/zoom)
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '14px Arial';
+  ctx.textAlign = 'left';
+  ctx.fillText(getTimeDisplay(), 20, 30);
+
+  // Draw lighting state indicator (fixed on screen)
+  const lightingState = getLightingState();
+  const stateLabel = lightingState.charAt(0).toUpperCase() + lightingState.slice(1);
+  ctx.fillStyle = lightingState === 'night' ? '#8888ff' : lightingState === 'evening' ? '#ffaa55' : '#ffff88';
+  ctx.fillText(stateLabel, 20, 50);
 
   // Draw character sprites on top of the office layout
   if (window.drawCharacters) {
