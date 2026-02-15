@@ -1699,9 +1699,9 @@ function drawDeskLamps(x, y, w, h) {
 function drawWindow(x, y, w, h) {
   // Window position (back wall of office)
   const windowX = x + w * 0.35;
-  const windowY = y + h * 0.15;
-  const windowW = w * 0.25;
-  const windowH = h * 0.35;
+  const windowY = y + h * 0.08;
+  const windowW = w * 0.15;
+  const windowH = h * 0.20;
   
   // Get sky color based on time
   const skyColor = getSkyColor();
