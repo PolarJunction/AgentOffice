@@ -770,6 +770,14 @@ function gameLoop(timestamp) {
   // Update and draw speech bubbles
   updateAndDrawSpeechBubbles(timestamp);
   
+  // Update and draw office events (Phase 6)
+  if (window.updateOfficeEvents) {
+    window.updateOfficeEvents(deltaTime);
+  }
+  if (window.drawOfficeEvents) {
+    window.drawOfficeEvents();
+  }
+  
   // Update and draw mood indicators (Phase 5)
   if (window.updateMoods) {
     window.updateMoods(deltaTime);
@@ -2385,6 +2393,11 @@ startStatusPolling();
 // Initialize agent moods (Phase 5)
 if (window.initializeAgentMoods) {
   window.initializeAgentMoods();
+}
+
+// Initialize office events (Phase 6)
+if (window.initializeOfficeEvents) {
+  window.initializeOfficeEvents();
 }
 
 // Initialize timeline (Phase 6)
