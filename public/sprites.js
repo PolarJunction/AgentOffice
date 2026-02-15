@@ -500,8 +500,14 @@ function updateCharacterPosition(character, deltaTime) {
   }
 }
 
-// Get color variation based on state and frame
+// Get color variation based on state and frame (includes mood - Phase 5)
 function getStateColor(character) {
+  // If mood system is available and character has mood, use mood-aware color
+  if (window.getMoodStateColor && character.mood) {
+    return window.getMoodStateColor(character);
+  }
+  
+  // Fallback to original implementation
   const baseColor = character.baseColor;
   const frame = character.frame;
   const state = character.state;
