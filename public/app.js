@@ -761,6 +761,14 @@ function gameLoop(timestamp) {
   // Update and draw speech bubbles
   updateAndDrawSpeechBubbles(timestamp);
   
+  // Update and draw mood indicators (Phase 5)
+  if (window.updateMoods) {
+    window.updateMoods(deltaTime);
+  }
+  if (window.drawMoodIndicators) {
+    window.drawMoodIndicators();
+  }
+  
   // Note: Demo mode disabled - states now driven by live API polling
   // To re-enable demo: uncomment cycleCharacterStates() call below
   // stateCycleTimer += deltaTime;
@@ -899,6 +907,10 @@ function processAgentStatus(agents) {
         window.setCharacterState(characterId, states.WALKING_TO_LOUNGE);
         // Show speech bubble for completing task
         showSpeechBubble(characterId, character.name, 'complete');
+        // Trigger happy mood on task completion (Phase 5)
+        if (window.onTaskComplete) {
+          window.onTaskComplete(character);
+        }
       }
     }
     
@@ -1186,6 +1198,14 @@ function createInfoOverlay() {
       <span style="color: #888;">Status:</span>
       <span id="overlay-agent-state" style="color: #88ff88; margin-left: 8px;">idle</span>
     </div>
+    <div style="margin-bottom: 8px;">
+      <span style="color: #888;">Mood:</span>
+      <span id="overlay-agent-mood" style="margin-left: 8px;">Neutral</span>
+    </div>
+    <div style="margin-bottom: 8px;">
+      <span style="color: #888;">Streak:</span>
+      <span id="overlay-agent-streak" style="color: #ffcc00; margin-left: 8px;">0</span>
+    </div>
     <div id="overlay-task-container" style="display: none;">
       <div style="color: #888; margin-bottom: 4px;">Current Task:</div>
       <div id="overlay-agent-task" style="
@@ -1254,6 +1274,24 @@ function handleCanvasClick(event) {
     const stateText = clickedCharacter.state || 'idle';
     document.getElementById('overlay-agent-state').textContent = stateText;
     
+    // Show mood info (Phase 5)
+    const moodEl = document.getElementById('overlay-agent-mood');
+    const streakEl = document.getElementById('overlay-agent-streak');
+    if (clickedCharacter.mood) {
+      const moodConfig = window.MOOD_CONFIG?.[clickedCharacter.mood.state] || { label: 'Neutral' };
+      moodEl.textContent = moodConfig.label;
+      // Color mood text
+      if (clickedCharacter.mood.state === 'happy') moodEl.style.color = '#ffcc00';
+      else if (clickedCharacter.mood.state === 'frustrated') moodEl.style.color = '#ff4444';
+      else moodEl.style.color = '#888888';
+      
+      streakEl.textContent = clickedCharacter.mood.streak || 0;
+    } else {
+      moodEl.textContent = 'Neutral';
+      moodEl.style.color = '#888888';
+      streakEl.textContent = '0';
+    }
+    
     // Show task info if available
     const taskContainer = document.getElementById('overlay-task-container');
     const taskText = clickedCharacter.currentTask || 'No active task';
@@ -1305,6 +1343,11 @@ function handleCanvasClick(event) {
 
 // Start live status polling (Phase 3)
 startStatusPolling();
+
+// Initialize agent moods (Phase 5)
+if (window.initializeAgentMoods) {
+  window.initializeAgentMoods();
+}
 
 // Add click handler for agent info
 // Add click handler for agent info (desktop)
