@@ -529,9 +529,9 @@ function draw(timestamp = 0, deltaTime = 16) {
   ctx.save();
   ctx.translate(panX + cx, panY + cy);
 
-  // Office outer walls
-  ctx.strokeStyle = COLORS.wallOutline;
-  ctx.lineWidth = 4 * scale;
+  // Office outer walls (subtle border)
+  ctx.strokeStyle = '#3a3a5a';
+  ctx.lineWidth = 2 * scale;
   ctx.strokeRect(x, y, w, h);
   
   // Hallway (center connecting left and right)
@@ -1327,18 +1327,10 @@ function drawSwayingPlants(timestamp) {
   });
 }
 
-// Fluorescent light flicker effect
+// Fluorescent light flicker effect (disabled for now)
 function drawLightFlicker(timestamp) {
-  // Only flicker occasionally (every ~10-30 seconds)
-  const flickerChance = Math.sin(timestamp / 15000) > 0.95;
-  const flickerIntensity = flickerChance ? Math.random() * 0.15 : 0;
-  
-  if (flickerIntensity > 0) {
-    // Apply subtle overlay to simulate light flicker
-    const { x, y, w, h } = getOfficeBounds();
-    ctx.fillStyle = `rgba(200, 200, 255, ${flickerIntensity})`;
-    ctx.fillRect(x, y, w, h);
-  }
+  // Temporarily disabled - can re-enable if needed
+  return;
 }
 
 // ============================================================================
@@ -1697,40 +1689,44 @@ function drawDeskLamps(x, y, w, h) {
 
 // Draw window with sky color
 function drawWindow(x, y, w, h) {
-  // Window position (back wall of office)
-  const windowX = x + w * 0.35;
-  const windowY = y + h * 0.08;
-  const windowW = w * 0.15;
-  const windowH = h * 0.20;
-  
+  // Window position - on the back wall (top portion)
+  // Position in the right side of the office, upper area
+  const windowX = x + w * 0.65;
+  const windowY = y + h * 0.05;
+  const windowW = w * 0.25;
+  const windowH = h * 0.25;
+
   // Get sky color based on time
   const skyColor = getSkyColor();
-  
-  // Window frame
-  ctx.fillStyle = '#5a5a7a';
-  ctx.fillRect(windowX - 4 * scale, windowY - 4 * scale, windowW + 8 * scale, windowH + 8 * scale);
-  
+
+  // Wall around window (cutout effect)
+  ctx.fillStyle = '#4a4a6a';
+  ctx.fillRect(windowX - 6 * scale, windowY - 6 * scale, windowW + 12 * scale, windowH + 12 * scale);
+
   // Window glass with sky color
   ctx.fillStyle = skyColor;
   ctx.fillRect(windowX, windowY, windowW, windowH);
-  
-  // Window cross bars
+
+  // Window frame border
   ctx.strokeStyle = '#6a6a8a';
+  ctx.lineWidth = 2 * scale;
+  ctx.strokeRect(windowX, windowY, windowW, windowH);
+
+  // Window cross bars (modern horizontal bar instead of十字)
+  ctx.strokeStyle = '#5a5a7a';
   ctx.lineWidth = 3 * scale;
   ctx.beginPath();
-  ctx.moveTo(windowX + windowW / 2, windowY);
-  ctx.lineTo(windowX + windowW / 2, windowY + windowH);
   ctx.moveTo(windowX, windowY + windowH / 2);
   ctx.lineTo(windowX + windowW, windowY + windowH / 2);
   ctx.stroke();
-  
-  // Add subtle glow at night from window
+
+  // Add glow at night from window
   if (getLightingState() === LIGHTING_STATES.NIGHT) {
-    const gradient = ctx.createLinearGradient(windowX, windowY, windowX - 30 * scale, windowY);
-    gradient.addColorStop(0, 'rgba(30, 30, 80, 0.3)');
-    gradient.addColorStop(1, 'rgba(30, 30, 80, 0)');
+    const gradient = ctx.createLinearGradient(windowX - 40 * scale, windowY, windowX, windowY);
+    gradient.addColorStop(0, 'rgba(50, 50, 100, 0.4)');
+    gradient.addColorStop(1, 'rgba(50, 50, 100, 0)');
     ctx.fillStyle = gradient;
-    ctx.fillRect(windowX - 30 * scale, windowY, 30 * scale, windowH);
+    ctx.fillRect(windowX - 40 * scale, windowY, 40 * scale, windowH);
   }
 }
 
