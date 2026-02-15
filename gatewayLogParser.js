@@ -33,8 +33,30 @@ class GatewayLogParser {
     this.running = false;
     this.timer = null;
     
+    // Agent statistics tracking
+    this.agentStats = new Map(); // agentId -> Stats object
+    
     // Initialize with all known agents as idle
     this._initializeAgents();
+    this._initializeStats();
+  }
+  
+  _initializeStats() {
+    for (const [id, name] of Object.entries(AGENT_NAME_MAP)) {
+      this.agentStats.set(id, {
+        id: id,
+        name: name,
+        tasksCompleted: 0,
+        currentStreak: 0,
+        bestStreak: 0,
+        timeWorkedToday: 0, // in seconds
+        favoriteActivity: null,
+        activityCounts: {},
+        achievements: [],
+        lastTaskStart: null,
+        workStartTime: null
+      });
+    }
   }
   
   _initializeAgents() {
@@ -182,21 +204,31 @@ class GatewayLogParser {
   /**
    * Set an agent as active (working)
    */
-  _setAgentActive(agentId) {
+  _setAgentActive(agentId, taskName = null) {
     // Normalize agent ID (e.g., strip -cron suffix)
     const normalizedId = agentId.replace(/-cron.*$/, '');
     
     const agent = this.activeAgents.get(normalizedId);
     if (agent) {
       agent.state = 'working';
+      agent.currentTask = taskName;
       agent.lastActive = new Date().toISOString();
+      
+      // Track work start time
+      const stats = this.agentStats.get(normalizedId);
+      if (stats) {
+        stats.lastTaskStart = new Date();
+        if (!stats.workStartTime) {
+          stats.workStartTime = new Date();
+        }
+      }
     }
   }
   
   /**
-   * Set an agent as idle
+   * Set an agent as idle (task completed)
    */
-  _setAgentIdle(agentId) {
+  _setAgentIdle(agentId, taskName = null) {
     const normalizedId = agentId.replace(/-cron.*$/, '');
     
     const agent = this.activeAgents.get(normalizedId);
@@ -204,6 +236,83 @@ class GatewayLogParser {
       agent.state = 'idle';
       agent.currentTask = null;
       agent.lastActive = new Date().toISOString();
+      
+      // Update stats on task completion
+      this._recordTaskCompletion(normalizedId, taskName);
+    }
+  }
+  
+  /**
+   * Record task completion and update stats
+   */
+  _recordTaskCompletion(agentId, taskName) {
+    const stats = this.agentStats.get(agentId);
+    if (!stats) return;
+    
+    // Increment task count
+    stats.tasksCompleted++;
+    
+    // Update streak
+    stats.currentStreak++;
+    if (stats.currentStreak > stats.bestStreak) {
+      stats.bestStreak = stats.currentStreak;
+    }
+    
+    // Track time worked
+    if (stats.lastTaskStart) {
+      const duration = (Date.now() - stats.lastTaskStart.getTime()) / 1000;
+      stats.timeWorkedToday += duration;
+    }
+    
+    // Track favorite activity
+    if (taskName) {
+      stats.activityCounts[taskName] = (stats.activityCounts[taskName] || 0) + 1;
+      
+      // Update favorite activity
+      let maxCount = 0;
+      for (const [activity, count] of Object.entries(stats.activityCounts)) {
+        if (count > maxCount) {
+          maxCount = count;
+          stats.favoriteActivity = activity;
+        }
+      }
+    }
+    
+    // Check for achievements
+    this._checkAchievements(agentId);
+    
+    // Reset for next task
+    stats.lastTaskStart = null;
+  }
+  
+  /**
+   * Check and award achievements
+   */
+  _checkAchievements(agentId) {
+    const stats = this.agentStats.get(agentId);
+    if (!stats) return;
+    
+    const now = new Date();
+    const hour = now.getHours();
+    
+    // First Task badge
+    if (stats.tasksCompleted === 1 && !stats.achievements.includes('first_task')) {
+      stats.achievements.push('first_task');
+    }
+    
+    // Streak Master (5+ consecutive tasks)
+    if (stats.currentStreak >= 5 && !stats.achievements.includes('streak_master')) {
+      stats.achievements.push('streak_master');
+    }
+    
+    // Night Owl (worked past 10 PM)
+    if (hour >= 22 && !stats.achievements.includes('night_owl')) {
+      stats.achievements.push('night_owl');
+    }
+    
+    // Early Bird (worked before 7 AM)
+    if (hour < 7 && !stats.achievements.includes('early_bird')) {
+      stats.achievements.push('early_bird');
     }
   }
   
@@ -233,6 +342,20 @@ class GatewayLogParser {
       currentTask: agent.currentTask,
       lastActive: agent.lastActive
     }));
+  }
+  
+  /**
+   * Get agent statistics
+   */
+  getAgentStats() {
+    return Array.from(this.agentStats.values());
+  }
+  
+  /**
+   * Get stats for a specific agent
+   */
+  getAgentStatsById(agentId) {
+    return this.agentStats.get(agentId);
   }
 }
 

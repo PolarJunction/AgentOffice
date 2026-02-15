@@ -1273,62 +1273,123 @@ function getMonitorGlowColor() {
 // Click Handler for Task Info
 // ============================================================================
 
-// Create info overlay element
+// Achievement badges configuration
+const ACHIEVEMENT_CONFIG = {
+  'first_task': { label: '🎯 First Task', color: '#4CAF50' },
+  'streak_master': { label: '🔥 Streak Master', color: '#FF9800' },
+  'night_owl': { label: '🦉 Night Owl', color: '#9C27B0' },
+  'early_bird': { label: '🌅 Early Bird', color: '#03A9F4' }
+};
+
+// Create stats panel overlay element
 function createInfoOverlay() {
   const overlay = document.createElement('div');
   overlay.id = 'agent-info-overlay';
   overlay.style.cssText = `
     position: fixed;
-    top: 20px;
-    right: 20px;
-    background: rgba(30, 30, 50, 0.95);
+    top: 50%;
+    right: -400px;
+    transform: translateY(-50%);
+    background: rgba(30, 30, 50, 0.97);
     border: 2px solid #6a6a8a;
-    border-radius: 8px;
-    padding: 16px;
+    border-radius: 12px;
+    padding: 20px;
     color: #fff;
-    font-family: Arial, sans-serif;
-    min-width: 250px;
-    max-width: 350px;
-    display: none;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    width: 360px;
+    max-height: 80vh;
+    overflow-y: auto;
     z-index: 1000;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    box-shadow: -4px 0 30px rgba(0, 0, 0, 0.6);
+    transition: right 0.3s ease-out;
   `;
   
   overlay.innerHTML = `
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-      <h3 id="overlay-agent-name" style="margin: 0; color: #ff6b9d;">Agent</h3>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h2 id="overlay-agent-name" style="margin: 0; color: #ff6b9d; font-size: 22px;">Agent</h2>
       <button id="overlay-close" style="
-        background: transparent;
+        background: rgba(255, 100, 100, 0.2);
         border: none;
-        color: #aaa;
-        font-size: 20px;
+        color: #ff6b6b;
+        font-size: 24px;
         cursor: pointer;
-        padding: 0 4px;
+        padding: 0 8px;
+        border-radius: 4px;
+        transition: background 0.2s;
       ">×</button>
     </div>
-    <div style="margin-bottom: 8px;">
-      <span style="color: #888;">Status:</span>
-      <span id="overlay-agent-state" style="color: #88ff88; margin-left: 8px;">idle</span>
+    
+    <!-- Stats Grid -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+      <div style="background: rgba(80, 80, 120, 0.3); padding: 12px; border-radius: 8px; text-align: center;">
+        <div style="font-size: 24px; font-weight: bold; color: #4fc3f7;" id="overlay-tasks-completed">0</div>
+        <div style="font-size: 11px; color: #888; text-transform: uppercase;">Tasks Done</div>
+      </div>
+      <div style="background: rgba(80, 80, 120, 0.3); padding: 12px; border-radius: 8px; text-align: center;">
+        <div style="font-size: 24px; font-weight: bold; color: #ffcc00;" id="overlay-current-streak">0</div>
+        <div style="font-size: 11px; color: #888; text-transform: uppercase;">Streak</div>
+      </div>
+      <div style="background: rgba(80, 80, 120, 0.3); padding: 12px; border-radius: 8px; text-align: center;">
+        <div style="font-size: 24px; font-weight: bold; color: #81c784;" id="overlay-time-worked">0m</div>
+        <div style="font-size: 11px; color: #888; text-transform: uppercase;">Time Today</div>
+      </div>
+      <div style="background: rgba(80, 80, 120, 0.3); padding: 12px; border-radius: 8px; text-align: center;">
+        <div style="font-size: 14px; font-weight: bold; color: #ce93d8;" id="overlay-favorite">-</div>
+        <div style="font-size: 11px; color: #888; text-transform: uppercase;">Favorite</div>
+      </div>
     </div>
-    <div style="margin-bottom: 8px;">
-      <span style="color: #888;">Mood:</span>
-      <span id="overlay-agent-mood" style="margin-left: 8px;">Neutral</span>
+    
+    <!-- Current Status -->
+    <div style="margin-bottom: 16px; padding: 12px; background: rgba(60, 60, 90, 0.4); border-radius: 8px;">
+      <div style="display: flex; align-items: center; margin-bottom: 8px;">
+        <span style="color: #888; margin-right: 8px;">Status:</span>
+        <span id="overlay-agent-state" style="color: #88ff88; font-weight: bold;">idle</span>
+      </div>
+      <div id="overlay-task-container" style="display: none;">
+        <div style="color: #888; margin-bottom: 4px; font-size: 12px;">Current Task:</div>
+        <div id="overlay-agent-task" style="
+          background: rgba(100, 100, 150, 0.3);
+          padding: 8px;
+          border-radius: 4px;
+          font-size: 13px;
+          word-wrap: break-word;
+        "></div>
+      </div>
     </div>
-    <div style="margin-bottom: 8px;">
-      <span style="color: #888;">Streak:</span>
-      <span id="overlay-agent-streak" style="color: #ffcc00; margin-left: 8px;">0</span>
+    
+    <!-- Achievement Badges -->
+    <div style="margin-bottom: 16px;">
+      <div style="color: #888; font-size: 12px; margin-bottom: 8px; text-transform: uppercase;">Achievements</div>
+      <div id="overlay-achievements" style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span style="color: #666; font-size: 12px;">No achievements yet</span>
+      </div>
     </div>
-    <div id="overlay-task-container" style="display: none;">
-      <div style="color: #888; margin-bottom: 4px;">Current Task:</div>
-      <div id="overlay-agent-task" style="
-        background: rgba(100, 100, 150, 0.3);
-        padding: 8px;
-        border-radius: 4px;
-        font-size: 13px;
-        word-wrap: break-word;
-      "></div>
+    
+    <!-- Progress Bars -->
+    <div style="margin-bottom: 16px;">
+      <div style="color: #888; font-size: 12px; margin-bottom: 8px; text-transform: uppercase;">Daily Goals</div>
+      <div style="margin-bottom: 10px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+          <span style="font-size: 12px; color: #aaa;">Daily (5 tasks)</span>
+          <span style="font-size: 12px; color: #4fc3f7;" id="overlay-daily-progress-text">0/5</span>
+        </div>
+        <div style="background: rgba(60, 60, 80, 0.5); height: 8px; border-radius: 4px; overflow: hidden;">
+          <div id="overlay-daily-progress" style="background: linear-gradient(90deg, #4fc3f7, #29b6f6); height: 100%; width: 0%; transition: width 0.3s;"></div>
+        </div>
+      </div>
+      <div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+          <span style="font-size: 12px; color: #aaa;">Weekly (25 tasks)</span>
+          <span style="font-size: 12px; color: #ffcc00;" id="overlay-weekly-progress-text">0/25</span>
+        </div>
+        <div style="background: rgba(60, 60, 80, 0.5); height: 8px; border-radius: 4px; overflow: hidden;">
+          <div id="overlay-weekly-progress" style="background: linear-gradient(90deg, #ffcc00, #ffb300); height: 100%; width: 0%; transition: width 0.3s;"></div>
+        </div>
+      </div>
     </div>
-    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #444;">
+    
+    <!-- Last Active -->
+    <div style="padding-top: 12px; border-top: 1px solid #444;">
       <span style="color: #666; font-size: 11px;">Last active: </span>
       <span id="overlay-last-active" style="color: #888; font-size: 11px;">-</span>
     </div>
@@ -1338,16 +1399,51 @@ function createInfoOverlay() {
   
   // Close button handler
   document.getElementById('overlay-close').addEventListener('click', () => {
-    overlay.style.display = 'none';
+    closeStatsPanel();
   });
   
   return overlay;
 }
 
+// Close stats panel with animation
+function closeStatsPanel() {
+  const overlay = document.getElementById('agent-info-overlay');
+  if (overlay) {
+    overlay.style.right = '-400px';
+    setTimeout(() => {
+      overlay.style.display = 'none';
+    }, 300);
+  }
+}
+
+// Show stats panel with animation
+function showStatsPanel() {
+  const overlay = document.getElementById('agent-info-overlay');
+  if (overlay) {
+    overlay.style.display = 'block';
+    // Small delay to allow display:block to apply before transition
+    setTimeout(() => {
+      overlay.style.right = '20px';
+    }, 10);
+  }
+}
+
 let infoOverlay = null;
 
-// Handle canvas clicks to show agent info
-function handleCanvasClick(event) {
+// Map character names to API agent IDs
+const CHARACTER_TO_API_ID = {
+  'Nova': 'nova',
+  'Zero-1': 'zero',
+  'Zero-2': 'zero-2',
+  'Zero-3': 'zero-3',
+  'Delta': 'delta',
+  'Bestie': 'bestie',
+  'Dexter': 'dexter',
+  'Flash': 'flash'
+};
+
+// Handle canvas clicks to show agent stats
+async function handleCanvasClick(event) {
   const canvas = document.getElementById('office');
   const rect = canvas.getBoundingClientRect();
   const clickX = (event.clientX - rect.left) / rect.width;
@@ -1376,33 +1472,13 @@ function handleCanvasClick(event) {
     infoOverlay = createInfoOverlay();
   }
   
-  const overlay = infoOverlay;
-  
   if (clickedCharacter) {
-    // Update overlay content
+    // Update basic info
     document.getElementById('overlay-agent-name').textContent = clickedCharacter.name;
     document.getElementById('overlay-agent-name').style.color = clickedCharacter.baseColor || '#ff6b9d';
     
     const stateText = clickedCharacter.state || 'idle';
     document.getElementById('overlay-agent-state').textContent = stateText;
-    
-    // Show mood info (Phase 5)
-    const moodEl = document.getElementById('overlay-agent-mood');
-    const streakEl = document.getElementById('overlay-agent-streak');
-    if (clickedCharacter.mood) {
-      const moodConfig = window.MOOD_CONFIG?.[clickedCharacter.mood.state] || { label: 'Neutral' };
-      moodEl.textContent = moodConfig.label;
-      // Color mood text
-      if (clickedCharacter.mood.state === 'happy') moodEl.style.color = '#ffcc00';
-      else if (clickedCharacter.mood.state === 'frustrated') moodEl.style.color = '#ff4444';
-      else moodEl.style.color = '#888888';
-      
-      streakEl.textContent = clickedCharacter.mood.streak || 0;
-    } else {
-      moodEl.textContent = 'Neutral';
-      moodEl.style.color = '#888888';
-      streakEl.textContent = '0';
-    }
     
     // Show task info if available
     const taskContainer = document.getElementById('overlay-task-container');
@@ -1415,29 +1491,6 @@ function handleCanvasClick(event) {
       taskContainer.style.display = 'none';
     }
     
-    // Position overlay near the clicked character
-    const canvas = document.getElementById('office');
-    const rect = canvas.getBoundingClientRect();
-    const charScreenX = clickedCharacter.offsetX * rect.width + rect.left;
-    const charScreenY = clickedCharacter.offsetY * rect.height + rect.top;
-    
-    // Position to the right of character, but keep within viewport
-    let posX = charScreenX + 30;
-    let posY = charScreenY - 20;
-    
-    // Adjust if too close to right edge
-    if (posX + 300 > window.innerWidth) {
-      posX = charScreenX - 320;
-    }
-    // Adjust if too close to bottom
-    if (posY + 200 > window.innerHeight) {
-      posY = window.innerHeight - 220;
-    }
-    
-    overlay.style.left = posX + 'px';
-    overlay.style.top = posY + 'px';
-    overlay.style.right = 'auto';
-    
     // Show last active time if available
     const lastActiveEl = document.getElementById('overlay-last-active');
     if (clickedCharacter.lastActive) {
@@ -1447,9 +1500,75 @@ function handleCanvasClick(event) {
       lastActiveEl.textContent = '-';
     }
     
-    overlay.style.display = 'block';
+    // Fetch and display stats from API
+    const apiAgentId = CHARACTER_TO_API_ID[clickedCharacter.name];
+    if (apiAgentId) {
+      try {
+        const response = await fetch(`/api/stats?agentId=${apiAgentId}`);
+        const data = await response.json();
+        
+        if (data.stats) {
+          const stats = data.stats;
+          
+          // Update stats grid
+          document.getElementById('overlay-tasks-completed').textContent = stats.tasksCompleted || 0;
+          document.getElementById('overlay-current-streak').textContent = stats.currentStreak || 0;
+          
+          // Format time worked
+          const timeWorked = stats.timeWorkedToday || 0;
+          const timeText = timeWorked >= 3600 
+            ? `${Math.floor(timeWorked/3600)}h ${Math.floor((timeWorked%3600)/60)}m`
+            : `${Math.floor(timeWorked/60)}m`;
+          document.getElementById('overlay-time-worked').textContent = timeText;
+          
+          // Favorite activity
+          document.getElementById('overlay-favorite').textContent = stats.favoriteActivity || '-';
+          
+          // Update achievements
+          const achievementsEl = document.getElementById('overlay-achievements');
+          if (stats.achievements && stats.achievements.length > 0) {
+            achievementsEl.innerHTML = stats.achievements.map(ach => {
+              const config = ACHIEVEMENT_CONFIG[ach] || { label: ach, color: '#888' };
+              return `<span style="
+                background: ${config.color}33;
+                border: 1px solid ${config.color};
+                color: ${config.color};
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 11px;
+                font-weight: bold;
+              ">${config.label}</span>`;
+            }).join('');
+          } else {
+            achievementsEl.innerHTML = '<span style="color: #666; font-size: 12px;">No achievements yet</span>';
+          }
+          
+          // Update progress bars
+          const dailyGoal = 5;
+          const weeklyGoal = 25;
+          const dailyPercent = Math.min((stats.tasksCompleted / dailyGoal) * 100, 100);
+          const weeklyPercent = Math.min((stats.tasksCompleted / weeklyGoal) * 100, 100);
+          
+          document.getElementById('overlay-daily-progress').style.width = dailyPercent + '%';
+          document.getElementById('overlay-daily-progress-text').textContent = `${stats.tasksCompleted}/${dailyGoal}`;
+          document.getElementById('overlay-weekly-progress').style.width = weeklyPercent + '%';
+          document.getElementById('overlay-weekly-progress-text').textContent = `${stats.tasksCompleted}/${weeklyGoal}`;
+        }
+      } catch (err) {
+        console.error('Failed to fetch agent stats:', err);
+        // Use fallback values on error
+        document.getElementById('overlay-tasks-completed').textContent = '0';
+        document.getElementById('overlay-current-streak').textContent = '0';
+        document.getElementById('overlay-time-worked').textContent = '0m';
+        document.getElementById('overlay-favorite').textContent = '-';
+        document.getElementById('overlay-achievements').innerHTML = '<span style="color: #666; font-size: 12px;">Stats unavailable</span>';
+      }
+    }
+    
+    // Show the panel with animation
+    showStatsPanel();
   } else {
-    overlay.style.display = 'none';
+    closeStatsPanel();
   }
 }
 
