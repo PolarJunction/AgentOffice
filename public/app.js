@@ -2627,11 +2627,6 @@ function updateLeaderboard() {
     </div>
   `).join('');
 }
-      <div class="leaderboard-name">${agent.name}</div>
-      <div class="leaderboard-score">${agent.tasksCompleted} tasks</div>
-    </div>
-  `).join('');
-}
 
 // Add desk usage when agent sits
 function recordDeskUsage(agentName, deskIndex) {
