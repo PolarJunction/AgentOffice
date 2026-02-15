@@ -514,6 +514,30 @@ function draw(timestamp = 0) {
   ctx.fillText('KITCHEN', leftX + leftW / 2, leftY + leftH * 0.25);
   ctx.fillText('LOUNGE', leftX + leftW / 2, leftY + leftH * 0.7);
   
+  // Draw ping pong table in lounge (Phase 7)
+  if (window.drawPingPongTable) {
+    const tableX = leftX + leftW * 0.55;
+    const tableY = leftY + leftH * 0.72;
+    const tableW = leftW * 0.4;
+    const tableH = leftH * 0.22;
+    window.drawPingPongTable(ctx, tableX, tableY, tableW, tableH, scale);
+    
+    // Draw active ping pong game if running
+    window.drawPingPongGame(ctx, tableX, tableY, tableW, tableH, scale);
+  }
+  
+  // Draw arcade machine in lounge (Phase 7)
+  if (window.drawArcadeMachine) {
+    const arcadeX = leftX + leftW * 0.08;
+    const arcadeY = leftY + leftH * 0.52;
+    const arcadeW = leftW * 0.2;
+    const arcadeH = leftH * 0.25;
+    window.drawArcadeMachine(ctx, arcadeX, arcadeY, arcadeW, arcadeH, scale);
+    
+    // Draw active arcade game if running
+    window.drawArcadeScreen(ctx, arcadeX, arcadeY, arcadeW, arcadeH);
+  }
+  
   // RIGHT SIDE - Desk Area
   const rightX = x + w * 0.7;
   const rightW = w * 0.28;
@@ -784,6 +808,14 @@ function gameLoop(timestamp) {
   }
   if (window.drawVisitor) {
     window.drawVisitor();
+  }
+  
+  // Update and draw mini-games (Phase 7)
+  if (window.updatePingPongGame) {
+    window.updatePingPongGame();
+  }
+  if (window.updateArcadeGame) {
+    window.updateArcadeGame();
   }
   
   // Update and draw mood indicators (Phase 5)
@@ -2415,6 +2447,27 @@ renderTimeline();
 // Add click handler for agent info
 // Add click handler for agent info (desktop)
 document.getElementById('office').addEventListener('click', handleCanvasClick);
+
+// Handle mini-game clicks (Phase 7)
+document.getElementById('office').addEventListener('click', (event) => {
+  const canvas = document.getElementById('office');
+  if (window.handleMiniGameClick) {
+    const handled = window.handleMiniGameClick(event.clientX, event.clientY, canvas);
+    if (handled) {
+      event.stopPropagation(); // Don't show agent stats if mini-game clicked
+    }
+  }
+});
+
+// Start mini-game random events (Phase 7)
+if (window.startMiniGameEvents) {
+  window.startMiniGameEvents();
+}
+
+// Start visitor events (Phase 7)
+if (window.startVisitorEvents) {
+  window.startVisitorEvents();
+}
 
 // Add touch handler for mobile
 document.getElementById('office').addEventListener('touchstart', function(event) {
