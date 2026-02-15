@@ -5,7 +5,14 @@
 // Get office layout constants from app.js (global scope)
 const MIN_WIDTH = window.MIN_WIDTH || 1200;
 const MIN_HEIGHT = window.MIN_HEIGHT || 800;
-let scale = window.scale || 1;
+// Use Object.defineProperty to avoid redeclaring 'scale' from app.js
+if (typeof scale === 'undefined') {
+  Object.defineProperty(window, 'scale', {
+    get: function() { return window._scale || 1; },
+    set: function(v) { window._scale = v; },
+    configurable: true
+  });
+}
 
 // Walking speed (units per millisecond) - adjustable
 const WALKING_SPEED = 0.0008;
@@ -334,6 +341,10 @@ const FRAME_DURATION = 500;
 
 // Get office layout boundaries (must match app.js)
 function getOfficeBounds() {
+  // Guard: ensure canvas is initialized before use
+  if (!canvas || !canvas.width || !canvas.height) {
+    return { cx: 0, cy: 0, w: MIN_WIDTH, h: MIN_HEIGHT, x: 0, y: 0, scale: 1 };
+  }
   const cx = canvas.width / 2;
   const cy = canvas.height / 2;
   const w = MIN_WIDTH * scale;
