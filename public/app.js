@@ -420,6 +420,56 @@ function resizeCanvas() {
   draw();
 }
 
+// ============================================================================
+// Pan and Zoom Support
+// ============================================================================
+
+// Pan and zoom state
+let panX = 0;
+let panY = 0;
+let isDragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+
+// Mouse wheel to zoom
+canvas.addEventListener('wheel', function(e) {
+  e.preventDefault();
+  const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+  scale = Math.max(0.2, Math.min(3.0, scale * zoomFactor));
+  window.scale = scale;
+  updateScaleIndicator();
+  draw();
+});
+
+// Mouse drag to pan
+canvas.addEventListener('mousedown', function(e) {
+  isDragging = true;
+  dragStartX = e.clientX - panX;
+  dragStartY = e.clientY - panY;
+  canvas.style.cursor = 'grabbing';
+});
+
+canvas.addEventListener('mousemove', function(e) {
+  if (isDragging) {
+    panX = e.clientX - dragStartX;
+    panY = e.clientY - dragStartY;
+    draw();
+  }
+});
+
+canvas.addEventListener('mouseup', function() {
+  isDragging = false;
+  canvas.style.cursor = 'grab';
+});
+
+canvas.addEventListener('mouseleave', function() {
+  isDragging = false;
+  canvas.style.cursor = 'grab';
+});
+
+// Set initial cursor
+canvas.style.cursor = 'grab';
+
 // Scale indicator for mobile visibility
 function updateScaleIndicator() {
   let indicator = document.getElementById('scale-indicator');
@@ -457,21 +507,25 @@ window.addEventListener('resize', resizeCanvas);
 // Draw the office layout
 function draw(timestamp = 0) {
   animationTimestamp = timestamp;
-  const cx = window.innerWidth / 2;
-  const cy = window.innerHeight / 2;
+  // Office dimensions
   const w = MIN_WIDTH * scale;
   const h = MIN_HEIGHT * scale;
-  const x = cx - w / 2;
-  const y = cy - h / 2;
-  
+  // Office position (centered at origin after translate)
+  const x = -w / 2;
+  const y = -h / 2;
+
   // Clear canvas
   ctx.fillStyle = COLORS.floor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  
+
   // Apply day/night ambient overlay
   const ambient = getAmbientOverlay();
   ctx.fillStyle = ambient.color;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Apply pan transformation
+  ctx.save();
+  ctx.translate(panX + cx, panY + cy);
   
   // Draw time display in corner
   ctx.fillStyle = '#ffffff';
@@ -770,7 +824,10 @@ function draw(timestamp = 0) {
   const bounds = getOfficeBounds();
   drawDeskLamps(bounds.x, bounds.y, bounds.w, bounds.h);
   drawWindow(bounds.x, bounds.y, bounds.w, bounds.h);
-  
+
+  // Restore context (end of pan transformation)
+  ctx.restore();
+
   // Draw character sprites on top of the office layout
   if (window.drawCharacters) {
     window.drawCharacters();
