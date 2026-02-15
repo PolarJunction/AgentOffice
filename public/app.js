@@ -48,7 +48,9 @@ resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
 // Draw the office layout
-function draw() {
+let animationTimestamp = 0;
+function draw(timestamp = 0) {
+  animationTimestamp = timestamp;
   const cx = canvas.width / 2;
   const cy = canvas.height / 2;
   const w = MIN_WIDTH * scale;
@@ -305,6 +307,9 @@ function draw() {
   ctx.lineTo(x + w * 0.57, hallwayY + hallwayH / 2);
   ctx.stroke();
   
+  // Draw ambient animations (Phase 4)
+  drawAmbientAnimations(timestamp);
+  
   // Draw character sprites on top of the office layout
   if (window.drawCharacters) {
     window.drawCharacters();
@@ -320,12 +325,38 @@ function gameLoop(timestamp) {
   const deltaTime = timestamp - lastTime;
   lastTime = timestamp;
   
-  // Redraw the office
-  draw();
+  // Redraw the office (pass timestamp for animations)
+  draw(timestamp);
+  
+  // Update and draw visual effects (Phase 4)
+  if (window.updateCoffeeSteam) {
+    window.updateCoffeeSteam(timestamp);
+  }
+  if (window.drawCoffeeSteam) {
+    window.drawCoffeeSteam();
+  }
   
   // Update character animations with deltaTime
   if (window.drawCharacters) {
     window.drawCharacters(deltaTime);
+  }
+  
+  // Draw typing particles and monitor glow for working characters
+  if (window.CHARACTERS) {
+    window.CHARACTERS.forEach(character => {
+      if (window.spawnTypingParticles) {
+        window.spawnTypingParticles(character);
+      }
+      if (window.drawMonitorGlow) {
+        window.drawMonitorGlow(character);
+      }
+    });
+  }
+  if (window.updateTypingParticles) {
+    window.updateTypingParticles();
+  }
+  if (window.drawTypingParticles) {
+    window.drawTypingParticles();
   }
   
   // Note: Demo mode disabled - states now driven by live API polling
@@ -468,6 +499,116 @@ function processAgentStatus(agents) {
     // Store current state for next comparison
     previousAgentStates.set(characterId, agent.state);
   });
+}
+
+// ============================================================================
+// Ambient Animations - Phase 4
+// ============================================================================
+
+// Clock variables
+let clockAngle = 0;
+
+// Draw ambient animations (clock, plants swaying, light flicker)
+function drawAmbientAnimations(timestamp) {
+  // Clock second hand animation
+  clockAngle = (timestamp / 1000) * (Math.PI / 30); // Full rotation every 60 seconds
+  
+  const { x, y, w, h } = getOfficeBounds();
+  
+  // Draw clock in hallway
+  const clockX = x + w * 0.5;
+  const clockY = y + h * 0.22;
+  const clockRadius = 15 * scale;
+  
+  // Clock face
+  ctx.fillStyle = '#2a2a3a';
+  ctx.beginPath();
+  ctx.arc(clockX, clockY, clockRadius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#6a6a8a';
+  ctx.lineWidth = 2 * scale;
+  ctx.stroke();
+  
+  // Clock border
+  ctx.strokeStyle = '#aaa';
+  ctx.lineWidth = 1 * scale;
+  ctx.beginPath();
+  ctx.arc(clockX, clockY, clockRadius - 1 * scale, 0, Math.PI * 2);
+  ctx.stroke();
+  
+  // Clock center dot
+  ctx.fillStyle = '#ff6b6b';
+  ctx.beginPath();
+  ctx.arc(clockX, clockY, 2 * scale, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Second hand
+  const secondHandLength = clockRadius - 4 * scale;
+  ctx.strokeStyle = '#ff6b6b';
+  ctx.lineWidth = 1.5 * scale;
+  ctx.beginPath();
+  ctx.moveTo(clockX, clockY);
+  ctx.lineTo(
+    clockX + Math.sin(clockAngle) * secondHandLength,
+    clockY - Math.cos(clockAngle) * secondHandLength
+  );
+  ctx.stroke();
+  
+  // Plant swaying (in kitchen area)
+  drawSwayingPlants(timestamp);
+  
+  // Subtle fluorescent light flicker
+  drawLightFlicker(timestamp);
+}
+
+// Plant swaying animation
+function drawSwayingPlants(timestamp) {
+  const { x, y, w, h } = getOfficeBounds();
+  
+  // Two plants in kitchen/lounge area
+  const plantPositions = [
+    { x: x + w * 0.15, y: y + h * 0.42 },
+    { x: x + w * 0.85, y: y + h * 0.42 }
+  ];
+  
+  plantPositions.forEach((pos, index) => {
+    const swayOffset = Math.sin(timestamp / 1000 + index * Math.PI) * 3 * scale;
+    
+    // Plant pot
+    ctx.fillStyle = '#5a4a3a';
+    ctx.fillRect(pos.x - 8 * scale, pos.y, 16 * scale, 10 * scale);
+    
+    // Plant leaves with sway
+    ctx.fillStyle = '#4a7a5a';
+    for (let i = 0; i < 5; i++) {
+      const leafAngle = (i - 2) * 0.3 + swayOffset * 0.02;
+      ctx.beginPath();
+      ctx.ellipse(
+        pos.x + swayOffset * (i - 2) * 0.3,
+        pos.y - 8 * scale - i * 4 * scale,
+        4 * scale,
+        8 * scale,
+        leafAngle,
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
+    }
+  });
+}
+
+// Fluorescent light flicker effect
+function drawLightFlicker(timestamp) {
+  // Only flicker occasionally (every ~10-30 seconds)
+  const flickerChance = Math.sin(timestamp / 15000) > 0.95;
+  const flickerIntensity = flickerChance ? Math.random() * 0.15 : 0;
+  
+  if (flickerIntensity > 0) {
+    // Apply subtle overlay to simulate light flicker
+    const { x, y, w, h } = getOfficeBounds();
+    ctx.fillStyle = `rgba(200, 200, 255, ${flickerIntensity})`;
+    ctx.fillRect(x, y, w, h);
+  }
 }
 
 // ============================================================================
